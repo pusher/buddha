@@ -5,13 +5,27 @@ Buddha executes a set of commands in lock stop, while issuing health checks befo
 
 Buddha is designed to work with the [God](http://godrb.com/) process manager. Unlike God who watches over processed, Buddha helps guide processes through reincarnation.
 
+Requirements:
+
+  - Go 1.5+
+
 [GoDoc](https://godoc.org/github.com/pusher/buddha)
 
 
-Example Config
---------------
+Configuration
+-------------
+
+A buddha configuration file consists of an array of jobs. Each job executes a set of commands and performs health checks after every command and before continuing to the next one. Currently implemented are HTTP and TCP health checks.
+
+Every health check is executed within a timed constraint, as noted below:
+
+  - **Grace:** the period between executing a command and performaing health checks, to allow the application a window in which to initialise
+  - **Timeout:** the period in which a health check has to execute, if a health check exceeds this it is deemed to have failed and will have its response ignored
+  - **Interval:** the backoff period after a failed check before trying again up to the `failures` limit
 
 Below is an example of starting a redis server, ensuring is comes up with a TCP health check, starting our demo application, and ensuring it responds healthily before terminating.
+
+**Example:**
 
 ```json
 [
@@ -55,10 +69,3 @@ Below is an example of starting a redis server, ensuring is comes up with a TCP 
   }
 ]
 ```
-
-
-Todo
-----
-
-   - [ ] differentiate stdout/stderr from command in log output
-   - [ ] output (optional) result data from checks
