@@ -1,0 +1,24 @@
+[
+  {
+    "name": "reload_if_failed",
+    "commands": [
+      {
+        "path": "service",
+        "args": ["app_server", "restart"],
+
+        "before": [
+          {"type": "http", "name": "http_8081", "path": "http://127.0.0.1:8081/health_check", "expect": [500]}
+        ],
+
+        "after": [
+          {"type": "http", "name": "http_8081", "path": "http://127.0.0.1:8081/health_check", "expect": [200]}
+        ],
+
+        "grace": "5s",
+        "timeout": "1s",
+        "interval": "2s",
+        "failures": 5
+      }
+    ]
+  }
+]

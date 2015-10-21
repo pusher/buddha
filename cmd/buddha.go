@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -32,9 +31,11 @@ func Usage() {
 	fmt.Print("  --version                   display version information\r\n\r\n")
 
 	fmt.Print("examples:\r\n")
-	fmt.Print("  to invoke /etc/buddha.d/api_server.json:\r\n")
+	fmt.Print("  to invoke api_server from /etc/buddha.d:\r\n")
 	fmt.Print("    $ buddha api_server\r\n")
-	fmt.Print("  to invoke /my/app/server.json:\r\n")
+	fmt.Print("  to invoke all jobs from /etc/buddha.d:\r\n")
+	fmt.Print("    $ buddha all\r\n")
+	fmt.Print("  to invoke server from /my/app:\r\n")
 	fmt.Print("    $ buddha --config-dir=/my/app server\r\n")
 	fmt.Print("  to invoke demo.json file:\r\n")
 	fmt.Print("    $ buddha --config=demo.json\r\n")
@@ -71,28 +72,30 @@ func main() {
 		j, err := buddha.Open(os.Stdin)
 		if err != nil {
 			log.Fail(2, "config:", err)
+			return
 		}
 
 		jobs = j
 	} else {
-		// load named job configuration file from global
-		if flag.Arg(0) == "" {
-			log.Fail(2, "config: please specify a job name or config file")
-			return
-		}
-
-		path := filepath.Join(*ConfigDir, flag.Arg(0)+".json")
-		j, err := buddha.OpenFile(path)
+		j, err := buddha.OpenDir(*ConfigDir)
 		if err != nil {
-			log.Fail(1, "fail: config:", err)
+			log.Fail(2, "config:", err)
 			return
 		}
 
 		jobs = j
 	}
 
+	jobsToRun := flag.Args()
+	if len(jobsToRun) == 0 {
+		log.Fail(2, "please specify job name 'all' to run all jobs")
+		return
+	}
+
 	for _, job := range *jobs {
-		runJob(job)
+		if jobsToRun[0] == "all" || inArray(job.Name, jobsToRun) {
+			runJob(job)
+		}
 	}
 }
 
@@ -100,28 +103,30 @@ func runJob(job *buddha.Job) {
 	log.Info("job:", job.Name)
 
 	for _, cmd := range job.Commands {
-		log.Info("exec:", cmd.Path, cmd.Args)
+		// execute before health checks
+		err := executeChecks(cmd, cmd.Before)
+		if err != nil {
+			log.Fail(4, "checks: before:", err)
+			return
+		}
 
+		// execute command
+		log.Info("exec:", cmd.Path, cmd.Args)
 		cmd.Stdout = execStdout
-		err := cmd.Execute()
+		err = cmd.Execute()
 		if err != nil {
 			log.Fail(3, "exec:", err)
 			return
 		}
 
-		checks := cmd.All()
-		if len(checks) == 0 {
-			log.Info("check: skipping checks")
-			continue
-		}
-
-		// grace period between executing command and executing health checks
+		// grace period between executing command and executing health checks/next command
 		log.Info("grace: waiting", cmd.Grace)
 		time.Sleep(cmd.Grace.Duration())
 
-		err = executeChecks(cmd, checks)
+		// execute after health checks
+		err = executeChecks(cmd, cmd.After)
 		if err != nil {
-			log.Fail(4, "checks:", err)
+			log.Fail(4, "checks: after:", err)
 			return
 		}
 	}
@@ -134,6 +139,10 @@ func execStdout(line string) {
 
 // execute independent checks in worker goroutines
 func executeChecks(cmd buddha.Command, checks buddha.Checks) error {
+	if len(checks) == 0 {
+		return nil
+	}
+
 	wg := new(sync.WaitGroup)
 	fail := make(chan error, 1)
 
@@ -176,4 +185,15 @@ func executeCheck(wg *sync.WaitGroup, cmd buddha.Command, check buddha.Check, fa
 	if err != nil {
 		fail <- err
 	}
+}
+
+// return true if string is found in array of strings
+func inArray(a string, b []string) bool {
+	for _, s := range b {
+		if s == a {
+			return true
+		}
+	}
+
+	return false
 }

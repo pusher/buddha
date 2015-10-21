@@ -30,42 +30,40 @@ Below is an example of starting a redis server, ensuring is comes up with a TCP 
 ```json
 [
   {
-    "name": "app",
+    "name": "my_app",
     "commands": [
       {
-      	// execute command `service redis start`
-      	// expect a zero-exit from command
         "path": "service",
         "args": ["redis", "start"],
 
-        "tcp": [
-          // name the check redis in logs, check against 127.0.0.1:6379
-          {"name": "redis", "addr": "127.0.0.1:6379"}
+        "after": [
+          {"type": "tcp", "name": "redis", "addr": "127.0.0.1:6379"}
         ],
 
-        "grace": "2s",    // allow redis 2s to start before health checking
-        "timeout": "1s",  // execution timeout for health check
-        "interval": "2s", // timeout between health checks
-        "failures": 5     // maximum health check failures before terminating
+        "grace": "5s",
+        "timeout": "1s",
+        "interval": "2s",
+        "failures": 5
       },
       {
-      	// execute command `service my_app start`
-      	// expect a zero-exit from command
         "path": "service",
-        "args": ["my_app", "start"],
+        "args": ["my_app", "restart"],
 
-        "http": [
-          // name the check app in logs, check the URL http://127.0.0.1:8080/health_check
-          // and expected an HTTP 200 status code before continuing
-          {"name": "app", "path": "http://127.0.0.1:8080/health_check", "expect": [200]}
+        "before": [
+          {"type": "http", "name": "http_failed", "path": "http://127.0.0.1:8080/health_check", "expect": [500]}
         ],
 
-        "grace": "5s",    // allow app 5s to start before health checking
-        "timeout": "1s",  // execution timeout for health check
-        "interval": "5s", // timeout between health checks
-        "failures": 5     // maximum health check failures before terminating
+        "after": [
+          {"type": "http", "name": "http_success", "path": "http://127.0.0.1:8080/health_check", "expect": [200]}
+        ],
+
+        "grace": "5s",
+        "timeout": "1s",
+        "interval": "2s",
+        "failures": 5
       }
     ]
   }
 ]
+
 ```

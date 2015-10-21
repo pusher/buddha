@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"io"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
 type Jobs []*Job
@@ -36,4 +38,48 @@ func OpenFile(filename string) (*Jobs, error) {
 	defer file.Close()
 
 	return Open(file)
+}
+
+// open job config files from directory
+func OpenDir(dirname string) (*Jobs, error) {
+	dir, err := os.OpenFile(dirname, os.O_RDONLY, 0755)
+	if err != nil {
+		return nil, err
+	}
+	defer dir.Close()
+
+	files, err := dir.Readdir(-1)
+	if err != nil {
+		return nil, err
+	}
+
+	var jobs Jobs
+	for _, file := range files {
+		path := filepath.Join(dirname, file.Name())
+
+		if file.IsDir() || !strings.HasSuffix(path, ".json") {
+			continue
+		}
+
+		var njobs Jobs
+		err := unmarshalFile(path, &njobs)
+		if err != nil {
+			return nil, err
+		}
+
+		jobs = append(jobs, njobs...)
+	}
+
+	return &jobs, nil
+}
+
+// unmarshal json file to interface
+func unmarshalFile(filename string, v interface{}) error {
+	file, err := os.OpenFile(filename, os.O_RDONLY, 0644)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	return json.NewDecoder(file).Decode(v)
 }

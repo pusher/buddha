@@ -28,7 +28,18 @@ func TestOpenFile(t *testing.T) {
 		t.Fatal("unexpected error:", err)
 	}
 
-	if len(*jobs) != 1 {
-		t.Fatal("expected 1 job, got", len(*jobs))
+	if l := len(*jobs); l != 1 {
+		t.Fatal("expected 1 job, got", l)
+	}
+}
+
+func TestOpenDir(t *testing.T) {
+	jobs, err := OpenDir("example/")
+	if err != nil {
+		t.Fatal("unexpected error:", err)
+	}
+
+	if l := len(*jobs); l != 2 {
+		t.Fatal("expected 2 jobs, got", l)
 	}
 }

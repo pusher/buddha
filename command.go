@@ -13,8 +13,8 @@ type Command struct {
 	// arguments to pass to executable
 	Args []string `json:"args,omitempty"`
 
-	HTTP []CheckHTTP `json:"http"`
-	TCP  []CheckTCP  `json:"tcp"`
+	Before Checks `json:"before"`
+	After  Checks `json:"after"`
 
 	// timeout between executing command and beginning health checking
 	Grace Duration `json:"grace"`
@@ -29,20 +29,6 @@ type Command struct {
 	Failures int `json:"failures"`
 
 	Stdout func(line string) `json:"-"` // call func for each stdout line
-}
-
-// return array containing all executable checks
-func (c Command) All() Checks {
-	var res Checks
-
-	for _, ch := range c.HTTP {
-		res = append(res, ch)
-	}
-	for _, ch := range c.TCP {
-		res = append(res, ch)
-	}
-
-	return res
 }
 
 // execute system command, piping logs to reader
