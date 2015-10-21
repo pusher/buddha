@@ -1,0 +1,46 @@
+[
+  {
+    "name": "reload_app_servers",
+    "commands": [
+      {
+        "path": "god",
+        "args": ["restart", "app_8081"],
+
+        "http": [
+          {"name": "http_8081", "path": "http://127.0.0.1:8081/health_check", "expect":[200]}
+        ],
+
+        "grace": "5s",
+        "timoue": "1s",
+        "interval": "2s",
+        "failures": 5
+      },
+      {
+        "path": "god",
+        "args": ["restart", "app_8082"],
+
+        "http": [
+          {"name": "http_8082", "path": "http://127.0.0.1:8082/health_check", "expect":[200]}
+        ],
+
+        "grace": "5s",
+        "timoue": "1s",
+        "interval": "2s",
+        "failures": 5
+      },
+      {
+        "path": "god",
+        "args": ["restart", "app_8083"],
+
+        "http": [
+          {"name": "http_8083", "path": "http://127.0.0.1:8083/health_check", "expect":[200]}
+        ],
+
+        "grace": "5s",
+        "timoue": "1s",
+        "interval": "2s",
+        "failures": 5
+      }
+    ]
+  }
+]
