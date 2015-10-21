@@ -1,9 +1,11 @@
+<img src="http://i.imgur.com/Cz0Ee3h.png" width="384" height="142" alt="buddha" />
+
 buddha
 =======
 
 Buddha executes a set of commands in lock stop, while issuing health checks before executing the next command.
 
-Buddha is designed to work with the [God](http://godrb.com/) process manager. Unlike God who watches over processed, Buddha helps guide processes through reincarnation.
+Buddha is designed to work with the [God](http://godrb.com/) process manager. Unlike God who watches over processes, Buddha helps guide processes through reincarnation.
 
 Requirements:
 
