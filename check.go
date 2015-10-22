@@ -40,6 +40,15 @@ func (c *Checks) UnmarshalJSON(p []byte) error {
 			}
 
 			*c = append(*c, tcp)
+
+		case "exec":
+			var exec CheckExec
+			err := json.Unmarshal(r, &exec)
+			if err != nil {
+				return err
+			}
+
+			*c = append(*c, exec)
 		}
 	}
 

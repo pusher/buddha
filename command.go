@@ -7,6 +7,9 @@ import (
 )
 
 type Command struct {
+	// name of command in logs
+	Name string `json:"name"`
+
 	// path to executable
 	Path string `json:"path"`
 

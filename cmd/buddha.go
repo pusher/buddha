@@ -18,6 +18,7 @@ var (
 var (
 	ConfigDir   = flag.String("config-dir", "/etc/buddha.d", "global job configuration directory")
 	ConfigFile  = flag.String("config", "", "manually specify job coniguration file")
+	ConfigStdin = flag.Bool("stdin", false, "accept config from stdin")
 	ShowVersion = flag.Bool("version", false, "display version information")
 )
 
@@ -28,6 +29,7 @@ func Usage() {
 	fmt.Print("flags:\r\n")
 	fmt.Print("  --config-dir=/etc/buddha.d  global job configuration directory\r\n")
 	fmt.Print("  --config=<file>             manually specify job configuration file\r\n")
+	fmt.Print("  --stdin                     accept job configiguration from STDIN\r\n")
 	fmt.Print("  --version                   display version information\r\n\r\n")
 
 	fmt.Print("examples:\r\n")
@@ -38,9 +40,9 @@ func Usage() {
 	fmt.Print("  to invoke server from /my/app:\r\n")
 	fmt.Print("    $ buddha --config-dir=/my/app server\r\n")
 	fmt.Print("  to invoke demo.json file:\r\n")
-	fmt.Print("    $ buddha --config=demo.json\r\n")
+	fmt.Print("    $ buddha --config=demo.json all\r\n")
 	fmt.Print("  to invoke jobs from stdin:\r\n")
-	fmt.Print("    $ cat demo.json | buddha -\r\n")
+	fmt.Print("    $ cat demo.json | buddha --stdin all\r\n")
 }
 
 // --version
@@ -103,11 +105,14 @@ func runJob(job *buddha.Job) {
 	log.Info("job:", job.Name)
 
 	for _, cmd := range job.Commands {
+		log.Info("command:", cmd.Name)
+
 		// execute before health checks
+		// these will only skip command, not terminate the run
 		err := executeChecks(cmd, cmd.Before)
 		if err != nil {
-			log.Fail(4, "checks: before:", err)
-			return
+			log.Warn("checks: before:", err)
+			continue
 		}
 
 		// execute command
@@ -144,7 +149,7 @@ func executeChecks(cmd buddha.Command, checks buddha.Checks) error {
 	}
 
 	wg := new(sync.WaitGroup)
-	fail := make(chan error, 1)
+	fail := make(chan error, len(checks))
 
 	for _, check := range checks {
 		wg.Add(1)

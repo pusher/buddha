@@ -17,7 +17,7 @@ Requirements:
 Configuration
 -------------
 
-A buddha configuration file consists of an array of jobs. Each job executes a set of commands and performs health checks after every command and before continuing to the next one. Currently implemented are HTTP and TCP health checks.
+A buddha configuration file consists of an array of jobs. Each job executes a set of commands and performs health checks after every command and before continuing to the next one. Currently implemented are HTTP, TCP and script health checks.
 
 Every health check is executed within a timed constraint, as noted below:
 
@@ -68,4 +68,30 @@ Below is an example of starting a redis server, ensuring is comes up with a TCP 
   }
 ]
 
+```
+
+
+Usage
+-----
+
+```
+usage: buddha [flags] job_file
+
+flags:
+  --config-dir=/etc/buddha.d  global job configuration directory
+  --config=<file>             manually specify job configuration file
+  --stdin                     accept job configiguration from STDIN
+  --version                   display version information
+
+examples:
+  to invoke api_server from /etc/buddha.d:
+    $ buddha api_server
+  to invoke all jobs from /etc/buddha.d:
+    $ buddha all
+  to invoke server from /my/app:
+    $ buddha --config-dir=/my/app server
+  to invoke demo.json file:
+    $ buddha --config=demo.json all
+  to invoke jobs from stdin:
+    $ cat demo.json | buddha --stdin all
 ```
