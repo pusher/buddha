@@ -18,18 +18,18 @@ var (
 var (
 	ConfigDir   = flag.String("config-dir", "/etc/buddha.d", "global job configuration directory")
 	ConfigFile  = flag.String("config", "", "manually specify job coniguration file")
-	ConfigStdin = flag.Bool("stdin", false, "accept config from stdin")
+	ConfigStdin = flag.Bool("stdin", false, "accept configuration from stdin")
 	ShowVersion = flag.Bool("version", false, "display version information")
 )
 
 // --help usage page
 func Usage() {
-	fmt.Print("usage: buddha [flags] job_file\r\n\r\n")
+	fmt.Print("usage: buddha [flags] job_file jobs...\r\n\r\n")
 
 	fmt.Print("flags:\r\n")
 	fmt.Print("  --config-dir=/etc/buddha.d  global job configuration directory\r\n")
 	fmt.Print("  --config=<file>             manually specify job configuration file\r\n")
-	fmt.Print("  --stdin                     accept job configiguration from STDIN\r\n")
+	fmt.Print("  --stdin                     accept job configuration from STDIN\r\n")
 	fmt.Print("  --version                   display version information\r\n\r\n")
 
 	fmt.Print("examples:\r\n")

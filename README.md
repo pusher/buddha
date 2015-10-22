@@ -3,7 +3,7 @@
 buddha
 =======
 
-Buddha executes a set of commands in lock stop, while issuing health checks before executing the next command.
+Buddha executes a set of commands in lock stop, while issuing health checks before and after executing the next command.
 
 Buddha is designed to work with the [God](http://godrb.com/) process manager. Unlike God who watches over processes, Buddha helps guide processes through reincarnation.
 
@@ -17,7 +17,7 @@ Requirements:
 Configuration
 -------------
 
-A buddha configuration file consists of an array of jobs. Each job executes a set of commands and performs health checks after every command and before continuing to the next one. Currently implemented are HTTP, TCP and script health checks.
+A buddha configuration file consists of an array of jobs. Each job consists of a set of commands and health checks. Health checks performed before the command act as a precondition, failures here will skip to the next command. Health checks performed after the command act as validation, failures here will terminate the buddha run.
 
 Every health check is executed within a timed constraint, as noted below:
 
@@ -75,12 +75,12 @@ Usage
 -----
 
 ```
-usage: buddha [flags] job_file
+usage: buddha [flags] job_file jobs...
 
 flags:
   --config-dir=/etc/buddha.d  global job configuration directory
   --config=<file>             manually specify job configuration file
-  --stdin                     accept job configiguration from STDIN
+  --stdin                     accept job configuration from STDIN
   --version                   display version information
 
 examples:
