@@ -12,6 +12,10 @@ type CheckHTTP struct {
 	// name of check in logs
 	Name string `json:"name"`
 
+	// http method to use
+	// OPTIONS is the recommended
+	Method string `json:"method"`
+
 	// url to issue health check
 	Path string `json:"path"`
 
@@ -28,6 +32,10 @@ func (c CheckHTTP) Validate() error {
 }
 
 func (c CheckHTTP) Execute(timeout time.Duration) error {
+	if c.Method == "" {
+		c.Method = "OPTIONS"
+	}
+
 	client := &http.Client{
 		Transport: &http.Transport{
 			Dial: func(network, address string) (net.Conn, error) {
@@ -36,7 +44,7 @@ func (c CheckHTTP) Execute(timeout time.Duration) error {
 		},
 	}
 
-	req, err := http.NewRequest("OPTIONS", c.Path, nil)
+	req, err := http.NewRequest(c.Method, c.Path, nil)
 	if err != nil {
 		return err
 	}
