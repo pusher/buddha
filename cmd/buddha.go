@@ -69,7 +69,7 @@ func main() {
 		}
 
 		jobs = j
-	} else if flag.Arg(0) == "-" {
+	} else if *ConfigStdin {
 		// load job configuration from stdin
 		j, err := buddha.Open(os.Stdin)
 		if err != nil {
