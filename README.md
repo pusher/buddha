@@ -3,6 +3,8 @@
 buddha
 =======
 
+[![Build Status](https://travis-ci.org/pusher/buddha.svg?branch=master)](https://travis-ci.org/pusher/buddha)
+
 Buddha executes a set of commands in lock stop, while issuing health checks before and after executing the next command.
 
 Buddha is designed to work with the [God](http://godrb.com/) process manager. Unlike God who watches over processes, Buddha helps guide processes through reincarnation.
