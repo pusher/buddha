@@ -13,7 +13,7 @@ test:
 	go test -v github.com/pusher/buddha
 
 stage:
-	@mkdir bin ||:
+	@mkdir -p bin
 
 clean:
-	@rm -r bin/ ||:
+	@rm -rf bin/
