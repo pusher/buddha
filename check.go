@@ -5,6 +5,17 @@ import (
 	"time"
 )
 
+type Check interface {
+	// identifier string for check
+	String() string
+
+	// validate check options for correctness
+	Validate() error
+
+	// execute health check with timeout
+	Execute(time.Duration) error
+}
+
 type Checks []Check
 
 // contextual unmarshaler into check types for interface
@@ -57,15 +68,4 @@ func (c *Checks) UnmarshalJSON(p []byte) error {
 
 type check struct {
 	Type string `json:"type"`
-}
-
-type Check interface {
-	// identifier string for check
-	String() string
-
-	// validate check options for correctness
-	Validate() error
-
-	// execute health check with timeout
-	Execute(time.Duration) error
 }
