@@ -2,7 +2,6 @@ package buddha
 
 import (
 	"fmt"
-	"net"
 	"net/http"
 	"time"
 )
@@ -37,11 +36,7 @@ func (c CheckHTTP) Execute(timeout time.Duration) error {
 	}
 
 	client := &http.Client{
-		Transport: &http.Transport{
-			Dial: func(network, address string) (net.Conn, error) {
-				return net.DialTimeout(network, address, timeout)
-			},
-		},
+		Timeout: timeout,
 	}
 
 	req, err := http.NewRequest(c.Method, c.Path, nil)

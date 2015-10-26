@@ -2,8 +2,9 @@ package buddha
 
 import (
 	"fmt"
-	"os/exec"
 	"time"
+	"os"
+	"os/exec"
 )
 
 type CheckExec struct {
@@ -26,24 +27,30 @@ func (c CheckExec) Validate() error {
 }
 
 func (c CheckExec) Execute(timeout time.Duration) error {
-	cmd := exec.Command(c.Path, c.Args...)
+	path, err := exec.LookPath(c.Path)
+	if err != nil {
+		return err
+	}
+
+	p, err := os.StartProcess(path, c.Args, &os.ProcAttr{})
+	if err != nil {
+		return err
+	}
 
 	done := make(chan error, 1)
 	go func() {
-		done <- cmd.Run()
+		_, err := p.Wait()
+		done <- err
 	}()
 
 	select {
 	case err := <-done:
-		if err != nil {
-			return err
-		}
+		return err
 
 	case <-time.After(timeout):
+		p.Kill()
 		return fmt.Errorf("timeout exceeded")
 	}
-
-	return nil
 }
 
 func (c CheckExec) String() string {
