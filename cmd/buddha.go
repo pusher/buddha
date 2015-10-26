@@ -94,9 +94,18 @@ func main() {
 		return
 	}
 
-	for _, job := range *jobs {
-		if jobsToRun[0] == "all" || inArray(job.Name, jobsToRun) {
+	if jobsToRun[0] == "all" {
+		for _, job := range *jobs {
 			runJob(job)
+		}
+		return
+	}
+
+	for _, jobName := range jobsToRun {
+		for _, job := range *jobs {
+			if job.Name == jobName {
+				runJob(job)
+			}
 		}
 	}
 }
