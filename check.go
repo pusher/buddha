@@ -2,6 +2,7 @@ package buddha
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 )
 
@@ -60,6 +61,8 @@ func (c *Checks) UnmarshalJSON(p []byte) error {
 			}
 
 			*c = append(*c, exec)
+		default:
+			return fmt.Errorf("Unknown check type %s", generic.Type)
 		}
 	}
 
