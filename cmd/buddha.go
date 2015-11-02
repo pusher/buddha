@@ -20,6 +20,7 @@ var (
 	ConfigFile  = flag.String("config", "", "manually specify job coniguration file")
 	ConfigStdin = flag.Bool("stdin", false, "accept configuration from stdin")
 	ShowVersion = flag.Bool("version", false, "display version information")
+	ConfirmAll  = flag.Bool("y", false, "confirm run all")
 )
 
 // --help usage page
@@ -95,6 +96,11 @@ func main() {
 	}
 
 	if jobsToRun[0] == "all" {
+		if !*ConfirmAll {
+			log.Warn("all will execute in the order of the source config file/directory.")
+			log.Fail(2, "Please re-run with the -y flag to acknowledge.")
+		}
+
 		for _, job := range *jobs {
 			runJob(job)
 		}
