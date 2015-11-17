@@ -102,7 +102,10 @@ func main() {
 		}
 
 		for _, job := range *jobs {
-			runJob(job)
+			err := runJob(job)
+			if err != nil {
+				return
+			}
 		}
 		return
 	}
@@ -110,13 +113,16 @@ func main() {
 	for _, jobName := range jobsToRun {
 		for _, job := range *jobs {
 			if job.Name == jobName {
-				runJob(job)
+				err := runJob(job)
+				if err != nil {
+					return
+				}
 			}
 		}
 	}
 }
 
-func runJob(job *buddha.Job) {
+func runJob(job *buddha.Job) error {
 	log.Info("job:", job.Name)
 
 	for _, cmd := range job.Commands {
@@ -136,7 +142,7 @@ func runJob(job *buddha.Job) {
 		err = cmd.Execute()
 		if err != nil {
 			log.Fail(3, "exec:", err)
-			return
+			return err
 		}
 
 		// grace period between executing command and executing health checks/next command
@@ -147,9 +153,11 @@ func runJob(job *buddha.Job) {
 		err = executeChecks(cmd, cmd.After)
 		if err != nil {
 			log.Fail(4, "checks: after:", err)
-			return
+			return err
 		}
 	}
+
+	return nil
 }
 
 // pipe exec stdout to log
