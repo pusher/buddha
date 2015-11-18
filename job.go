@@ -3,6 +3,7 @@ package buddha
 import (
 	"encoding/json"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -42,13 +43,7 @@ func OpenFile(filename string) (*Jobs, error) {
 
 // open job config files from directory
 func OpenDir(dirname string) (*Jobs, error) {
-	dir, err := os.OpenFile(dirname, os.O_RDONLY, 0755)
-	if err != nil {
-		return nil, err
-	}
-	defer dir.Close()
-
-	files, err := dir.Readdir(-1)
+	files, err := ioutil.ReadDir(dirname)
 	if err != nil {
 		return nil, err
 	}
