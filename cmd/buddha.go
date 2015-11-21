@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/pusher/buddha"
+	"github.com/pusher/buddha/flock"
 )
 
 var (
@@ -21,6 +22,7 @@ var (
 	ConfigStdin = flag.Bool("stdin", false, "accept configuration from stdin")
 	ShowVersion = flag.Bool("version", false, "display version information")
 	ConfirmAll  = flag.Bool("y", false, "confirm run all")
+	LockPath    = flag.String("lock", "/var/run/buddha.lock", "lock file to avoid concurrent access")
 )
 
 // --help usage page
@@ -31,7 +33,9 @@ func Usage() {
 	fmt.Print("  --config-dir=/etc/buddha.d  global job configuration directory\r\n")
 	fmt.Print("  --config=<file>             manually specify job configuration file\r\n")
 	fmt.Print("  --stdin                     accept job configuration from STDIN\r\n")
-	fmt.Print("  --version                   display version information\r\n\r\n")
+	fmt.Print("  --version                   display version information\r\n")
+	fmt.Print("  --lock=<file>               lock file to avoid concurrent access\r\n")
+	fmt.Print("\r\n")
 
 	fmt.Print("examples:\r\n")
 	fmt.Print("  to invoke api_server from /etc/buddha.d:\r\n")
@@ -94,6 +98,12 @@ func main() {
 		log.Fail(2, "please specify job name 'all' to run all jobs")
 		return
 	}
+
+	lock, err := flock.Open(*LockPath)
+	if err != nil {
+		log.Fail(3, "unable to acquire lock at path %s: %v", *LockPath, err)
+	}
+	defer lock.Close()
 
 	if jobsToRun[0] == "all" {
 		if !*ConfirmAll {
