@@ -2,9 +2,9 @@ package buddha
 
 import (
 	"fmt"
-	"time"
 	"os"
 	"os/exec"
+	"time"
 )
 
 type CheckExec struct {
