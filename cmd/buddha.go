@@ -53,8 +53,8 @@ func Usage() {
 
 // --version
 func Version() {
-	fmt.Printf("Build Version: %s\r\n", BuildVersion)
-	fmt.Printf("Build Revision: %s\r\n", BuildRevision)
+	fmt.Println("Build Version:", BuildVersion)
+	fmt.Println("Build Revision:", BuildRevision)
 }
 
 func main() {
@@ -203,15 +203,15 @@ func executeCheck(wg *sync.WaitGroup, cmd buddha.Command, check buddha.Check, fa
 
 	var err error
 	for i := 1; i <= cmd.Failures; i++ {
-		log.Infof("check %d/%d: %s: checking\r\n", i, cmd.Failures, check.String())
+		log.Infof("check %d/%d: %s: checking", i, cmd.Failures, check.String())
 		err = check.Execute(cmd.Timeout.Duration())
 		if err == nil {
 			log.Infof("check %d/%d: %s: success", i, cmd.Failures, check.String())
 			break
 		}
-		log.Warnf("check %d/%d: %s: %s\r\n", i, cmd.Failures, check.String(), err)
+		log.Warnf("check %d/%d: %s: %s", i, cmd.Failures, check.String(), err)
 
-		log.Infof("check %d/%d: %s: waiting interval %s\r\n", i, cmd.Failures, check.String(), cmd.Interval)
+		log.Infof("check %d/%d: %s: waiting interval %s", i, cmd.Failures, check.String(), cmd.Interval)
 		time.Sleep(cmd.Interval.Duration())
 	}
 
