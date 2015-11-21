@@ -20,6 +20,7 @@ var (
 	ConfigFile  = flag.String("config", "", "manually specify job coniguration file")
 	ConfigStdin = flag.Bool("stdin", false, "accept configuration from stdin")
 	ShowVersion = flag.Bool("version", false, "display version information")
+	ForceRun    = flag.Bool("force", false, "run the command even if the before checks are failing")
 	ConfirmAll  = flag.Bool("y", false, "confirm run all")
 )
 
@@ -31,6 +32,7 @@ func Usage() {
 	fmt.Print("  --config-dir=/etc/buddha.d  global job configuration directory\r\n")
 	fmt.Print("  --config=<file>             manually specify job configuration file\r\n")
 	fmt.Print("  --stdin                     accept job configuration from STDIN\r\n")
+	fmt.Print("  --force                     run the command even if the before checks are failing\r\n")
 	fmt.Print("  --version                   display version information\r\n\r\n")
 
 	fmt.Print("examples:\r\n")
@@ -102,7 +104,7 @@ func main() {
 		}
 
 		for _, job := range *jobs {
-			err := runJob(job)
+			err := runJob(job, *ForceRun)
 			if err != nil {
 				return
 			}
@@ -113,7 +115,7 @@ func main() {
 	for _, jobName := range jobsToRun {
 		for _, job := range *jobs {
 			if job.Name == jobName {
-				err := runJob(job)
+				err := runJob(job, *ForceRun)
 				if err != nil {
 					return
 				}
@@ -122,7 +124,7 @@ func main() {
 	}
 }
 
-func runJob(job *buddha.Job) error {
+func runJob(job *buddha.Job, forceRun bool) error {
 	log.Info("job:", job.Name)
 
 	for _, cmd := range job.Commands {
@@ -133,7 +135,9 @@ func runJob(job *buddha.Job) error {
 		err := executeChecks(cmd, cmd.Before)
 		if err != nil {
 			log.Warn("checks: before:", err)
-			continue
+			if !forceRun {
+				continue
+			}
 		}
 
 		// execute command
