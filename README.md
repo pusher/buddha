@@ -82,14 +82,16 @@ usage: buddha [flags] job_file jobs...
 flags:
   --config-dir=/etc/buddha.d  global job configuration directory
   --config=<file>             manually specify job configuration file
-  --stdin                     accept job configuration from STDIN
+  --stdin                     accept job configuration from stdin
   --version                   display version information
+  -y                          confirm run all
+  -h, --help                  shows this help
 
 examples:
   to invoke api_server from /etc/buddha.d:
     $ buddha api_server
   to invoke all jobs from /etc/buddha.d:
-    $ buddha all
+    $ buddha -y all
   to invoke server from /my/app:
     $ buddha --config-dir=/my/app server
   to invoke demo.json file:

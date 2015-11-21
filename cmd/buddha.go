@@ -16,34 +16,39 @@ var (
 )
 
 var (
-	ConfigDir   = flag.String("config-dir", "/etc/buddha.d", "global job configuration directory")
-	ConfigFile  = flag.String("config", "", "manually specify job coniguration file")
-	ConfigStdin = flag.Bool("stdin", false, "accept configuration from stdin")
-	ShowVersion = flag.Bool("version", false, "display version information")
-	ConfirmAll  = flag.Bool("y", false, "confirm run all")
+	ConfigDir   = flag.String("config-dir", "/etc/buddha.d", "")
+	ConfigFile  = flag.String("config", "", "")
+	ConfigStdin = flag.Bool("stdin", false, "")
+	ShowVersion = flag.Bool("version", false, "")
+	ConfirmAll  = flag.Bool("y", false, "")
 )
+
+const USAGE = `usage: buddha [flags] job_file jobs...
+
+flags:
+  --config-dir=/etc/buddha.d  global job configuration directory
+  --config=<file>             manually specify job configuration file
+  --stdin                     accept job configuration from stdin
+  --version                   display version information
+  -y                          confirm run all
+  -h, --help                  shows this help
+
+examples:
+  to invoke api_server from /etc/buddha.d:
+    $ buddha api_server
+  to invoke all jobs from /etc/buddha.d:
+    $ buddha -y all
+  to invoke server from /my/app:
+    $ buddha --config-dir=/my/app server
+  to invoke demo.json file:
+    $ buddha --config=demo.json all
+  to invoke jobs from stdin:
+    $ cat demo.json | buddha --stdin all
+`
 
 // --help usage page
 func Usage() {
-	fmt.Print("usage: buddha [flags] job_file jobs...\r\n\r\n")
-
-	fmt.Print("flags:\r\n")
-	fmt.Print("  --config-dir=/etc/buddha.d  global job configuration directory\r\n")
-	fmt.Print("  --config=<file>             manually specify job configuration file\r\n")
-	fmt.Print("  --stdin                     accept job configuration from STDIN\r\n")
-	fmt.Print("  --version                   display version information\r\n\r\n")
-
-	fmt.Print("examples:\r\n")
-	fmt.Print("  to invoke api_server from /etc/buddha.d:\r\n")
-	fmt.Print("    $ buddha api_server\r\n")
-	fmt.Print("  to invoke all jobs from /etc/buddha.d:\r\n")
-	fmt.Print("    $ buddha all\r\n")
-	fmt.Print("  to invoke server from /my/app:\r\n")
-	fmt.Print("    $ buddha --config-dir=/my/app server\r\n")
-	fmt.Print("  to invoke demo.json file:\r\n")
-	fmt.Print("    $ buddha --config=demo.json all\r\n")
-	fmt.Print("  to invoke jobs from stdin:\r\n")
-	fmt.Print("    $ cat demo.json | buddha --stdin all\r\n")
+	fmt.Fprint(os.Stderr, USAGE)
 }
 
 // --version
