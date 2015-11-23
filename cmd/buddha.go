@@ -4,46 +4,51 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/pusher/buddha"
+	"github.com/pusher/buddha/flock"
+	"github.com/pusher/buddha/log"
 )
 
 var (
-	BuildVersion  string
-	BuildRevision string
+	BuildVersion  string = "development"
+	BuildRevision string = "development"
 )
 
 var (
-	ConfigDir   = flag.String("config-dir", "/etc/buddha.d", "global job configuration directory")
-	ConfigFile  = flag.String("config", "", "manually specify job coniguration file")
-	ConfigStdin = flag.Bool("stdin", false, "accept configuration from stdin")
-	ShowVersion = flag.Bool("version", false, "display version information")
-	ConfirmAll  = flag.Bool("y", false, "confirm run all")
+	ConfigDir   = flag.String("config-dir", "/etc/buddha.d", "")
+	ConfigFile  = flag.String("config", "", "")
+	ConfigStdin = flag.Bool("stdin", false, "")
+	LockPath    = flag.String("lock-path", "/tmp/buddha.lock", "")
+	ShowVersion = flag.Bool("version", false, "")
 )
 
 // --help usage page
 func Usage() {
-	fmt.Print("usage: buddha [flags] job_file jobs...\r\n\r\n")
+	fmt.Println(`usage: buddha [flags] <jobs...>
 
-	fmt.Print("flags:\r\n")
-	fmt.Print("  --config-dir=/etc/buddha.d  global job configuration directory\r\n")
-	fmt.Print("  --config=<file>             manually specify job configuration file\r\n")
-	fmt.Print("  --stdin                     accept job configuration from STDIN\r\n")
-	fmt.Print("  --version                   display version information\r\n\r\n")
+flags:
+  --config-dir=/etc/buddha.d    global job configuration directory
+  --config=<file>               manually specify job configuration file
+  --stdin                       accept job configuration from STDIN
+  --lock-path=/tmp/buddha.lock  path to lock file
+  --version                     display version information
 
-	fmt.Print("examples:\r\n")
-	fmt.Print("  to invoke api_server from /etc/buddha.d:\r\n")
-	fmt.Print("    $ buddha api_server\r\n")
-	fmt.Print("  to invoke all jobs from /etc/buddha.d:\r\n")
-	fmt.Print("    $ buddha all\r\n")
-	fmt.Print("  to invoke server from /my/app:\r\n")
-	fmt.Print("    $ buddha --config-dir=/my/app server\r\n")
-	fmt.Print("  to invoke demo.json file:\r\n")
-	fmt.Print("    $ buddha --config=demo.json all\r\n")
-	fmt.Print("  to invoke jobs from stdin:\r\n")
-	fmt.Print("    $ cat demo.json | buddha --stdin all\r\n")
+examples:
+  to invoke api_server from /etc/buddha.d:
+    $ buddha api_server
+  to invoke all jobs from /etc/buddha.d:
+    $ buddha all
+  to invoke server from /my/app:
+    $ buddha --config-dir=/my/app server
+  to invoke demo.json file:
+    $ buddha --config=demo.json all
+  to invoke jobs from stdin:
+    $ cat demo.json | buddha --stdin all`)
 }
 
 // --version
@@ -52,107 +57,142 @@ func Version() {
 	fmt.Printf("Build Revision: %s\r\n", BuildRevision)
 }
 
-func main() {
+func init() {
 	flag.Usage = Usage
 	flag.Parse()
+
 	if *ShowVersion {
 		Version()
+		os.Exit(0)
+
 		return
 	}
+}
 
-	var jobs *buddha.Jobs
+func main() {
+	lock, err := flock.Lock(*LockPath)
+	if err != nil {
+		if err == flock.ErrLocked {
+			log.Println(log.LevelFail, "fatal: another instance of buddha is running")
+			os.Exit(2)
+
+			return
+		}
+
+		log.Println(log.LevelFail, "fatal: could not obtain exclusive lock at %s", *LockPath)
+		log.Println(log.LevelFail, "fatal: %s", err)
+		os.Exit(1)
+
+		return
+	}
+	defer lock.Close()
+
+	var jobs buddha.Jobs
 	if *ConfigFile != "" {
 		// load manual job configuration file
-		j, err := buddha.OpenFile(*ConfigFile)
+		jobs, err = buddha.OpenFile(*ConfigFile)
 		if err != nil {
-			log.Fail(2, "config:", err)
+			log.Println(log.LevelFail, "fatal: could not read config file %s", *ConfigFile)
+			log.Println(log.LevelFail, "fatal: %s", err)
+			os.Exit(2)
+
 			return
 		}
-
-		jobs = j
 	} else if *ConfigStdin {
 		// load job configuration from stdin
-		j, err := buddha.Open(os.Stdin)
+		jobs, err = buddha.Open(os.Stdin)
 		if err != nil {
-			log.Fail(2, "config:", err)
+			log.Println(log.LevelFail, "fatal: could not read config from STDIN")
+			log.Println(log.LevelFail, "fatal: %s", err)
+			os.Exit(2)
+
 			return
 		}
-
-		jobs = j
 	} else {
-		j, err := buddha.OpenDir(*ConfigDir)
+		jobs, err = buddha.OpenDir(*ConfigDir)
 		if err != nil {
-			log.Fail(2, "config:", err)
+			log.Println(log.LevelFail, "fatal: could not read config directory %s", *ConfigDir)
+			log.Println(log.LevelFail, "fatal: %s", err)
+			os.Exit(2)
+
 			return
 		}
-
-		jobs = j
 	}
+
+	// sort jobs by name
+	sort.Sort(jobs)
 
 	jobsToRun := flag.Args()
 	if len(jobsToRun) == 0 {
-		log.Fail(2, "please specify job name 'all' to run all jobs")
+		log.Println(log.LevelFail, "please specify job names, or 'all' to run all")
+		os.Exit(2)
+
 		return
 	}
 
-	if jobsToRun[0] == "all" {
-		if !*ConfirmAll {
-			log.Warn("all will execute in the order of the source config file/directory.")
-			log.Fail(2, "Please re-run with the -y flag to acknowledge.")
-		}
-
-		for _, job := range *jobs {
-			err := runJob(job)
-			if err != nil {
-				return
-			}
-		}
-		return
+	// if not running all jobs, filter job list
+	if jobsToRun[0] != "all" {
+		jobs = jobs.Filter(jobsToRun)
 	}
 
-	for _, jobName := range jobsToRun {
-		for _, job := range *jobs {
-			if job.Name == jobName {
-				err := runJob(job)
-				if err != nil {
-					return
-				}
-			}
+	// perform sanity checks against jobs
+	for i := 0; i < len(jobs); i++ {
+		if jobs[i].Root && (os.Getuid() != 0) {
+			log.Println(log.LevelFail, "fatal: job %s requires root privileges", jobs[i].Name)
+			os.Exit(1)
+		}
+	}
+
+	// execute jobs
+	for i := 0; i < len(jobs); i++ {
+		err := runJob(jobs[i])
+		if err != nil {
+			log.Println(log.LevelFail, "fatal: job %s failed", jobs[i].Name)
+			log.Println(log.LevelFail, "fatal: %s", err)
+			os.Exit(1)
+
+			return
 		}
 	}
 }
 
 func runJob(job *buddha.Job) error {
-	log.Info("job:", job.Name)
+	log.Println(log.LevelPrim, "Job: %s", job.Name)
 
 	for _, cmd := range job.Commands {
-		log.Info("command:", cmd.Name)
+		log.Println(log.LevelPrim, "Command: %s", job.Name)
 
 		// execute before health checks
 		// these will only skip command, not terminate the run
+		log.Println(log.LevelScnd, "Executing health checks")
 		err := executeChecks(cmd, cmd.Before)
 		if err != nil {
-			log.Warn("checks: before:", err)
+			log.Println(log.LevelFail, "error: before checks failed, skipping run")
 			continue
 		}
 
 		// execute command
-		log.Info("exec:", cmd.Path, cmd.Args)
+		log.Println(log.LevelScnd, "Executing Command: %s %s", cmd.Path, strings.Join(cmd.Args, " "))
 		cmd.Stdout = execStdout
 		err = cmd.Execute()
 		if err != nil {
-			log.Fail(3, "exec:", err)
+			log.Println(log.LevelFail, "fatal: command exited with non-zero status")
+			log.Println(log.LevelFail, "fatal: %s", err)
+
 			return err
 		}
 
 		// grace period between executing command and executing health checks/next command
-		log.Info("grace: waiting", cmd.Grace)
+		log.Println(log.LevelInfo, "Waiting %s grace...", cmd.Grace)
 		time.Sleep(cmd.Grace.Duration())
 
 		// execute after health checks
+		log.Println(log.LevelScnd, "Executing health checks")
 		err = executeChecks(cmd, cmd.After)
 		if err != nil {
-			log.Fail(4, "checks: after:", err)
+			log.Println(log.LevelFail, "fatal: after checks failed")
+			log.Println(log.LevelFail, "fatal: %s", err)
+
 			return err
 		}
 	}
@@ -162,7 +202,7 @@ func runJob(job *buddha.Job) error {
 
 // pipe exec stdout to log
 func execStdout(line string) {
-	log.Info("stdout:", line)
+	log.Println(log.LevelInfo, line)
 }
 
 // execute independent checks in worker goroutines
@@ -198,30 +238,19 @@ func executeCheck(wg *sync.WaitGroup, cmd buddha.Command, check buddha.Check, fa
 
 	var err error
 	for i := 1; i <= cmd.Failures; i++ {
-		log.Infof("check %d/%d: %s: checking\r\n", i, cmd.Failures, check.String())
+		log.Println(log.LevelInfo, "Check %d/%d: %s: checking...", i, cmd.Failures, check.String())
 		err = check.Execute(cmd.Timeout.Duration())
 		if err == nil {
-			log.Infof("check %d/%d: %s: success", i, cmd.Failures, check.String())
+			log.Println(log.LevelInfo, "Check %d/%d: %s success!", i, cmd.Failures, check.String())
 			break
 		}
-		log.Warnf("check %d/%d: %s: %s\r\n", i, cmd.Failures, check.String(), err)
+		log.Println(log.LevelInfo, "Check %d/%d: %s: %s", i, cmd.Failures, check.String(), err)
 
-		log.Infof("check %d/%d: %s: waiting interval %s\r\n", i, cmd.Failures, check.String(), cmd.Interval)
+		log.Println(log.LevelInfo, "Check %d/%d: %s: waiting %s...", i, cmd.Failures, check.String(), cmd.Interval)
 		time.Sleep(cmd.Interval.Duration())
 	}
 
 	if err != nil {
 		fail <- err
 	}
-}
-
-// return true if string is found in array of strings
-func inArray(a string, b []string) bool {
-	for _, s := range b {
-		if s == a {
-			return true
-		}
-	}
-
-	return false
 }

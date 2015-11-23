@@ -34,25 +34,30 @@ Below is an example of starting a redis server, ensuring is comes up with a TCP 
 ```json
 [
   {
-    "name": "my_app",
+    "name": "my_app", // unique name for job
+    "root": true,     // require that job runs as root user
     "commands": [
       {
-        "path": "service",
-        "args": ["redis", "start"],
+        "path": "service",          // path to command (if not a path, $PATH environment will be searched)
+        "args": ["redis", "start"], // arguments to pass to command
 
+        // health checks to execute after command
+        // failures will terminate the buddha run
         "after": [
           {"type": "tcp", "name": "redis", "addr": "127.0.0.1:6379"}
         ],
 
-        "grace": "5s",
-        "timeout": "1s",
-        "interval": "2s",
-        "failures": 5
+        "grace": "5s",    // grace period between commands
+        "timeout": "1s",  // timeout for health check execution
+        "interval": "2s", // interval between health checks
+        "failures": 5     // maximum health check failures to tolerate
       },
       {
         "path": "service",
         "args": ["my_app", "restart"],
 
+        // health checks to execute before command
+        // failures will skip the current command
         "before": [
           {"type": "http", "name": "http_failed", "path": "http://127.0.0.1:8080/health_check", "expect": [500]}
         ],
@@ -77,13 +82,14 @@ Usage
 -----
 
 ```
-usage: buddha [flags] job_file jobs...
+usage: buddha [flags] <jobs...>
 
 flags:
-  --config-dir=/etc/buddha.d  global job configuration directory
-  --config=<file>             manually specify job configuration file
-  --stdin                     accept job configuration from STDIN
-  --version                   display version information
+  --config-dir=/etc/buddha.d    global job configuration directory
+  --config=<file>               manually specify job configuration file
+  --stdin                       accept job configuration from STDIN
+  --lock-path=/tmp/buddha.lock  path to lock file
+  --version                     display version information
 
 examples:
   to invoke api_server from /etc/buddha.d:

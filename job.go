@@ -11,27 +11,46 @@ import (
 
 type Jobs []*Job
 
+func (j Jobs) Len() int           { return len(j) }
+func (j Jobs) Swap(i, n int)      { j[i], j[n] = j[n], j[i] }
+func (j Jobs) Less(i, n int) bool { return j[i].Name < j[n].Name }
+
+// return new array of jobs matching name filter
+func (j Jobs) Filter(f []string) Jobs {
+	var n Jobs
+	for i := 0; i < len(j); i++ {
+		if inArray(f, j[i].Name) {
+			n = append(n, j[i])
+		}
+	}
+
+	return n
+}
+
 type Job struct {
 	// name of job in logs
 	Name string `json:"name"`
+
+	// true if root privileges are required to run
+	Root bool `json:"root"`
 
 	// commands to execute
 	Commands []Command `json:"commands"`
 }
 
 // open job config from reader
-func Open(r io.Reader) (*Jobs, error) {
+func Open(r io.Reader) (Jobs, error) {
 	var jobs Jobs
 	err := json.NewDecoder(r).Decode(&jobs)
 	if err != nil {
 		return nil, err
 	}
 
-	return &jobs, nil
+	return jobs, nil
 }
 
 // open job config from file
-func OpenFile(filename string) (*Jobs, error) {
+func OpenFile(filename string) (Jobs, error) {
 	file, err := os.OpenFile(filename, os.O_RDONLY, 0644)
 	if err != nil {
 		return nil, err
@@ -42,7 +61,7 @@ func OpenFile(filename string) (*Jobs, error) {
 }
 
 // open job config files from directory
-func OpenDir(dirname string) (*Jobs, error) {
+func OpenDir(dirname string) (Jobs, error) {
 	files, err := ioutil.ReadDir(dirname)
 	if err != nil {
 		return nil, err
@@ -65,7 +84,7 @@ func OpenDir(dirname string) (*Jobs, error) {
 		jobs = append(jobs, njobs...)
 	}
 
-	return &jobs, nil
+	return jobs, nil
 }
 
 // unmarshal json file to interface
@@ -77,4 +96,15 @@ func unmarshalFile(filename string, v interface{}) error {
 	defer file.Close()
 
 	return json.NewDecoder(file).Decode(v)
+}
+
+// return true if element s in array a
+func inArray(a []string, s string) bool {
+	for i := 0; i < len(a); i++ {
+		if a[i] == s {
+			return true
+		}
+	}
+
+	return false
 }

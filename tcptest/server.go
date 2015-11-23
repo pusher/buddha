@@ -49,9 +49,13 @@ func (s Server) serve() {
 	for {
 		conn, err := s.ln.Accept()
 		if err != nil {
-			if operr, ok := err.(*net.OpError); ok {
+			if operr, ok := err.(*net.OpError); ok { // >= go 1.5
 				// gracefully handle socket closure (not error)
 				if operr.Err.Error() == "use of closed network connection" {
+					return
+				}
+			} else { // <= go 1.4
+				if err.Error() == "use of closed network connection" {
 					return
 				}
 			}

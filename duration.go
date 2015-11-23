@@ -18,7 +18,7 @@ func (d Duration) Duration() time.Duration {
 
 func (d *Duration) UnmarshalJSON(p []byte) error {
 	if len(p) < 2 || p[0] != '"' || p[len(p)-1] != '"' {
-		return fmt.Errorf("invalid duration string", string(p))
+		return fmt.Errorf("invalid duration string: %s", string(p))
 	}
 
 	dur, err := time.ParseDuration(string(p[1 : len(p)-1]))
