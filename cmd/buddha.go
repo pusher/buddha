@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -23,7 +24,7 @@ var (
 	ConfigDir   = flag.String("config-dir", "/etc/buddha.d", "")
 	ConfigFile  = flag.String("config", "", "")
 	ConfigStdin = flag.Bool("stdin", false, "")
-	LockPath    = flag.String("lock-path", "/tmp/buddha.lock", "")
+	LockPath    = flag.String("lock-path", filepath.Join(os.TempDir(), "buddha.lock"), "")
 	ShowVersion = flag.Bool("version", false, "")
 )
 
