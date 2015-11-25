@@ -17,6 +17,20 @@ func TestJobsFilter(t *testing.T) {
 	}
 }
 
+func TestJobsFilterOrder(t *testing.T) {
+	j := Jobs{&Job{Name: "foo"}, &Job{Name: "bar"}}
+
+	j = j.Filter([]string{"foo", "bar"})
+
+	if len(j) != 2 {
+		t.Fatal("expected 2 job, got", len(j))
+	} else if j[0].Name != "foo" {
+		t.Fatal("expected job[0] foo, got", j[0].Name)
+	} else if j[1].Name != "bar" {
+		t.Fatal("expected job[1] bar, got", j[1].Name)
+	}
+}
+
 func TestOpen(t *testing.T) {
 	file, err := os.OpenFile("example/reload_app_servers.json", os.O_RDONLY, 0644)
 	if err != nil {
