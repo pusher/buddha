@@ -71,54 +71,53 @@ func init() {
 }
 
 func main() {
-	lock, err := flock.Lock(*LockPath)
-	if err != nil {
-		if err == flock.ErrLocked {
-			log.Println(log.LevelFail, "fatal: another instance of buddha is running")
-			os.Exit(2)
-
-			return
-		}
-
-		log.Println(log.LevelFail, "fatal: could not obtain exclusive lock at %s", *LockPath)
-		log.Println(log.LevelFail, "fatal: %s", err)
-		os.Exit(1)
-
-		return
-	}
-	defer lock.Close()
-
 	var jobs buddha.Jobs
+	var err error
+
 	if *ConfigFile != "" {
 		// load manual job configuration file
 		jobs, err = buddha.OpenFile(*ConfigFile)
 		if err != nil {
 			log.Println(log.LevelFail, "fatal: could not read config file %s", *ConfigFile)
-			log.Println(log.LevelFail, "fatal: %s", err)
-			os.Exit(2)
-
-			return
 		}
 	} else if *ConfigStdin {
 		// load job configuration from stdin
 		jobs, err = buddha.Open(os.Stdin)
 		if err != nil {
 			log.Println(log.LevelFail, "fatal: could not read config from STDIN")
-			log.Println(log.LevelFail, "fatal: %s", err)
-			os.Exit(2)
-
-			return
 		}
 	} else {
 		jobs, err = buddha.OpenDir(*ConfigDir)
 		if err != nil {
 			log.Println(log.LevelFail, "fatal: could not read config directory %s", *ConfigDir)
-			log.Println(log.LevelFail, "fatal: %s", err)
-			os.Exit(2)
-
-			return
 		}
 	}
+
+	if err != nil {
+		log.Println(log.LevelFail, "fatal: %s", err)
+
+		os.Exit(2)
+		return
+	}
+
+	// exit with status code of run
+	os.Exit(run(jobs))
+
+}
+
+func run(jobs buddha.Jobs) int {
+	lock, err := flock.Lock(*LockPath)
+	if err != nil {
+		if err == flock.ErrLocked {
+			log.Println(log.LevelFail, "fatal: another instance of buddha is running")
+			return 2
+		}
+
+		log.Println(log.LevelFail, "fatal: could not obtain exclusive lock at %s", *LockPath)
+		log.Println(log.LevelFail, "fatal: %s", err)
+		return 1
+	}
+	defer lock.Close()
 
 	// sort jobs by name
 	sort.Sort(jobs)
@@ -126,9 +125,7 @@ func main() {
 	jobsToRun := flag.Args()
 	if len(jobsToRun) == 0 {
 		log.Println(log.LevelFail, "please specify job names, or 'all' to run all")
-		os.Exit(2)
-
-		return
+		return 2
 	}
 
 	// if not running all jobs, filter job list
@@ -140,7 +137,7 @@ func main() {
 	for i := 0; i < len(jobs); i++ {
 		if jobs[i].Root && (os.Getuid() != 0) {
 			log.Println(log.LevelFail, "fatal: job %s requires root privileges", jobs[i].Name)
-			os.Exit(1)
+			return 1
 		}
 	}
 
@@ -150,11 +147,11 @@ func main() {
 		if err != nil {
 			log.Println(log.LevelFail, "fatal: job %s failed", jobs[i].Name)
 			log.Println(log.LevelFail, "fatal: %s", err)
-			os.Exit(1)
-
-			return
+			return 1
 		}
 	}
+
+	return 0
 }
 
 func runJob(job *buddha.Job) error {
