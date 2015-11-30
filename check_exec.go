@@ -2,9 +2,9 @@ package buddha
 
 import (
 	"fmt"
-	"time"
 	"os"
 	"os/exec"
+	"time"
 )
 
 type CheckExec struct {
@@ -32,15 +32,24 @@ func (c CheckExec) Execute(timeout time.Duration) error {
 		return err
 	}
 
-	p, err := os.StartProcess(path, c.Args, &os.ProcAttr{})
+	fullArgs := []string{c.Path}
+	fullArgs = append(fullArgs, c.Args...)
+
+	p, err := os.StartProcess(path, fullArgs, &os.ProcAttr{})
 	if err != nil {
 		return err
 	}
 
 	done := make(chan error, 1)
 	go func() {
-		_, err := p.Wait()
-		done <- err
+		processState, err := p.Wait()
+		if err != nil {
+			done <- err
+		} else if processState.Success() {
+			done <- nil
+		} else {
+			done <- fmt.Errorf("Non-zero exit code")
+		}
 	}()
 
 	select {
