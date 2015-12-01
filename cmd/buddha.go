@@ -21,11 +21,13 @@ var (
 )
 
 var (
-	ConfigDir   = flag.String("config-dir", "/etc/buddha.d", "")
-	ConfigFile  = flag.String("config", "", "")
-	ConfigStdin = flag.Bool("stdin", false, "")
-	LockPath    = flag.String("lock-path", filepath.Join(os.TempDir(), "buddha.lock"), "")
-	ShowVersion = flag.Bool("version", false, "")
+	ConfigDir    = flag.String("config-dir", "/etc/buddha.d", "")
+	ConfigFile   = flag.String("config", "", "")
+	ConfigStdin  = flag.Bool("stdin", false, "")
+	LockPath     = flag.String("lock-path", filepath.Join(os.TempDir(), "buddha.lock"), "")
+	OnBeforeFail = flag.String("on-before-fail", "skip", "")
+	OnAfterFail  = flag.String("on-after-fail", "end", "")
+	ShowVersion  = flag.Bool("version", false, "")
 )
 
 // --help usage page
@@ -37,6 +39,8 @@ flags:
   --config=<file>               manually specify job configuration file
   --stdin                       accept job configuration from STDIN
   --lock-path=/tmp/buddha.lock  path to lock file
+  --on-before-fail=skip         job behaviour on before check failure (continue|skip|end)
+  --on-after-fail=end           run behaviour on after check failure (continue|end)
   --version                     display version information
 
 examples:
@@ -165,8 +169,17 @@ func runJob(job *buddha.Job) error {
 		log.Println(log.LevelScnd, "Executing health checks")
 		err := executeChecks(cmd, cmd.Before)
 		if err != nil {
-			log.Println(log.LevelFail, "error: before checks failed, skipping run")
-			continue
+			if *OnBeforeFail == "end" {
+				log.Println(log.LevelFail, "fatal: before checks failed, ending run")
+				return err
+			} else if *OnBeforeFail == "continue" {
+				log.Println(log.LevelFail, "warning: before checks failed, continuing anyway")
+				log.Println(log.LevelFail, "warning: %s", err)
+			} else {
+				log.Println(log.LevelFail, "error: before checks failed, skipping run")
+				log.Println(log.LevelFail, "error: %s", err)
+				continue
+			}
 		}
 
 		// execute command
@@ -188,9 +201,14 @@ func runJob(job *buddha.Job) error {
 		log.Println(log.LevelScnd, "Executing health checks")
 		err = executeChecks(cmd, cmd.After)
 		if err != nil {
+			if *OnAfterFail == "continue" {
+				log.Println(log.LevelFail, "warning: after checks failed, continuing anyway")
+				log.Println(log.LevelFail, "warning: %s", err)
+				continue
+			}
+
 			log.Println(log.LevelFail, "fatal: after checks failed")
 			log.Println(log.LevelFail, "fatal: %s", err)
-
 			return err
 		}
 	}
