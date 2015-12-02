@@ -58,8 +58,8 @@ examples:
 
 // --version
 func Version() {
-	fmt.Printf("Build Version: %s\r\n", BuildVersion)
-	fmt.Printf("Build Revision: %s\r\n", BuildRevision)
+	fmt.Println("Build Version:", BuildVersion)
+	fmt.Println("Build Revision:", BuildRevision)
 }
 
 func init() {
@@ -69,13 +69,13 @@ func init() {
 	if *OnBeforeFail != "continue" &&
 		*OnBeforeFail != "skip" &&
 		*OnBeforeFail != "stop" {
-		fmt.Printf("'%s' is not a valid value for option --on-before-fail\r\n", *OnBeforeFail)
+		fmt.Println(*OnBeforeFail, "is not a valid value for --on-before-fail")
 		os.Exit(2)
 	}
 
 	if *OnAfterFail != "continue" &&
 		*OnAfterFail != "stop" {
-		fmt.Printf("'%s' is not a valid value for option --on-after-fail\r\n", *OnAfterFail)
+		fmt.Println(*OnAfterFail, " is not a valid value for --on-after-fail")
 		os.Exit(2)
 	}
 
