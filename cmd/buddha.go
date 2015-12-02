@@ -176,7 +176,7 @@ func runJob(job *buddha.Job) error {
 				log.Println(log.LevelFail, "warning: before checks failed, continuing anyway")
 				log.Println(log.LevelFail, "warning: %s", err)
 			} else {
-				log.Println(log.LevelFail, "error: before checks failed, skipping run")
+				log.Println(log.LevelFail, "error: before checks failed, skipping job")
 				log.Println(log.LevelFail, "error: %s", err)
 				continue
 			}
@@ -207,7 +207,7 @@ func runJob(job *buddha.Job) error {
 				continue
 			}
 
-			log.Println(log.LevelFail, "fatal: after checks failed")
+			log.Println(log.LevelFail, "fatal: after checks failed, ending run")
 			log.Println(log.LevelFail, "fatal: %s", err)
 			return err
 		}
