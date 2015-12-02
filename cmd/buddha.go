@@ -66,6 +66,19 @@ func init() {
 	flag.Usage = Usage
 	flag.Parse()
 
+	if *OnBeforeFail != "continue" &&
+		*OnBeforeFail != "skip" &&
+		*OnBeforeFail != "stop" {
+		fmt.Printf("'%s' is not a valid value for option --on-before-fail\r\n", *OnBeforeFail)
+		os.Exit(2)
+	}
+
+	if *OnAfterFail != "continue" &&
+		*OnAfterFail != "stop" {
+		fmt.Printf("'%s' is not a valid value for option --on-after-fail\r\n", *OnAfterFail)
+		os.Exit(2)
+	}
+
 	if *ShowVersion {
 		Version()
 		os.Exit(0)
