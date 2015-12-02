@@ -86,10 +86,10 @@ Usage
   - `--on-before-fail`: determines the job behaviour on a before check failing.
     - `continue` continue with execution of the job
     - `skip` skip and start the next job (default)
-    - `end` end the current buddha run and exit
+    - `stop` end the current buddha run and exit
   - `--on-after-fail`: determines the run behavior on an after check failing.
     - `continue` continue with execution of next job
-    - `end` end the current buddha run and exit (default)
+    - `stop` end the current buddha run and exit (default)
 
 ```
 usage: buddha [flags] <jobs...>
@@ -99,8 +99,8 @@ flags:
   --config=<file>               manually specify job configuration file
   --stdin                       accept job configuration from STDIN
   --lock-path=/tmp/buddha.lock  path to lock file
-  --on-before-fail=skip         behaviour on before check failure (continue|skip|end)
-  --on-after-fail=end           behaviour on after check failure (continue|end)
+  --on-before-fail=skip         behaviour on before check failure (continue|skip|stop)
+  --on-after-fail=stop           behaviour on after check failure (continue|stop)
   --version                     display version information
 
 examples:
