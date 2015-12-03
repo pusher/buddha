@@ -1,4 +1,4 @@
-BUILD_VERSION=0.3.1
+BUILD_VERSION=0.3.2
 BUILD_REVISION=$(shell git rev-parse HEAD)
 
 .PHONY: stage test build clean default
