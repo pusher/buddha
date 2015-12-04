@@ -175,7 +175,7 @@ func runJob(job *buddha.Job) error {
 	log.Println(log.LevelPrim, "Job: %s", job.Name)
 
 	for _, cmd := range job.Commands {
-		log.Println(log.LevelPrim, "Command: %s", job.Name)
+		log.Println(log.LevelPrim, "Command: %s", cmd.Name)
 
 		// execute before health checks
 		// these will only skip command, not terminate the run
