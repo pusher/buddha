@@ -40,7 +40,7 @@ flags:
   --stdin                       accept job configuration from STDIN
   --lock-path=/tmp/buddha.lock  path to lock file
   --on-before-fail=skip         job behaviour on before check failure (continue|skip|stop)
-  --on-after-fail=stop           run behaviour on after check failure (continue|stop)
+  --on-after-fail=stop          run behaviour on after check failure (continue|stop)
   --version                     display version information
 
 examples:
@@ -180,6 +180,8 @@ func runJob(job *buddha.Job) error {
 		// execute before health checks
 		// these will only skip command, not terminate the run
 		log.Println(log.LevelScnd, "Executing health checks")
+		failures := cmd.Failures
+		cmd.Failures = 1
 		err := executeChecks(cmd, cmd.Before)
 		if err != nil {
 			if *OnBeforeFail == "stop" {
@@ -194,6 +196,7 @@ func runJob(job *buddha.Job) error {
 				continue
 			}
 		}
+		cmd.Failures = failures
 
 		// execute command
 		log.Println(log.LevelScnd, "Executing Command: %s %s", cmd.Path, strings.Join(cmd.Args, " "))
