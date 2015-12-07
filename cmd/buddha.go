@@ -40,7 +40,7 @@ flags:
   --stdin                       accept job configuration from STDIN
   --lock-path=/tmp/buddha.lock  path to lock file
   --on-before-fail=skip         job behaviour on before check failure (continue|skip|stop)
-  --on-after-fail=stop           run behaviour on after check failure (continue|stop)
+  --on-after-fail=stop          run behaviour on after check failure (continue|stop)
   --version                     display version information
 
 examples:
@@ -175,12 +175,12 @@ func runJob(job *buddha.Job) error {
 	log.Println(log.LevelPrim, "Job: %s", job.Name)
 
 	for _, cmd := range job.Commands {
-		log.Println(log.LevelPrim, "Command: %s", job.Name)
+		log.Println(log.LevelPrim, "Command: %s", cmd.Name)
 
 		// execute before health checks
-		// these will only skip command, not terminate the run
+		// these will execute once and depending on --on-before-file skip this job
 		log.Println(log.LevelScnd, "Executing health checks")
-		err := executeChecks(cmd, cmd.Before)
+		err := executeChecks(cmd, cmd.Before, 1)
 		if err != nil {
 			if *OnBeforeFail == "stop" {
 				log.Println(log.LevelFail, "fatal: before checks failed, ending run")
@@ -212,7 +212,7 @@ func runJob(job *buddha.Job) error {
 
 		// execute after health checks
 		log.Println(log.LevelScnd, "Executing health checks")
-		err = executeChecks(cmd, cmd.After)
+		err = executeChecks(cmd, cmd.After, cmd.Failures)
 		if err != nil {
 			if *OnAfterFail == "continue" {
 				log.Println(log.LevelFail, "warning: after checks failed, continuing anyway")
@@ -235,7 +235,7 @@ func execStdout(line string) {
 }
 
 // execute independent checks in worker goroutines
-func executeChecks(cmd buddha.Command, checks buddha.Checks) error {
+func executeChecks(cmd buddha.Command, checks buddha.Checks, failures int) error {
 	if len(checks) == 0 {
 		return nil
 	}
@@ -246,7 +246,7 @@ func executeChecks(cmd buddha.Command, checks buddha.Checks) error {
 	for _, check := range checks {
 		wg.Add(1)
 
-		go executeCheck(wg, cmd, check, fail)
+		go executeCheck(wg, cmd, check, fail, failures)
 	}
 	wg.Wait()
 
@@ -262,20 +262,20 @@ func executeChecks(cmd buddha.Command, checks buddha.Checks) error {
 }
 
 // execute a check synchronously as defined by check settings as part of a worker waitgroup
-func executeCheck(wg *sync.WaitGroup, cmd buddha.Command, check buddha.Check, fail chan error) {
+func executeCheck(wg *sync.WaitGroup, cmd buddha.Command, check buddha.Check, fail chan error, failures int) {
 	defer wg.Done()
 
 	var err error
-	for i := 1; i <= cmd.Failures; i++ {
-		log.Println(log.LevelInfo, "Check %d/%d: %s: checking...", i, cmd.Failures, check.String())
+	for i := 1; i <= failures; i++ {
+		log.Println(log.LevelInfo, "Check %d/%d: %s: checking...", i, failures, check.String())
 		err = check.Execute(cmd.Timeout.Duration())
 		if err == nil {
-			log.Println(log.LevelInfo, "Check %d/%d: %s success!", i, cmd.Failures, check.String())
+			log.Println(log.LevelInfo, "Check %d/%d: %s success!", i, failures, check.String())
 			break
 		}
-		log.Println(log.LevelInfo, "Check %d/%d: %s: %s", i, cmd.Failures, check.String(), err)
+		log.Println(log.LevelInfo, "Check %d/%d: %s: %s", i, failures, check.String(), err)
 
-		log.Println(log.LevelInfo, "Check %d/%d: %s: waiting %s...", i, cmd.Failures, check.String(), cmd.Interval)
+		log.Println(log.LevelInfo, "Check %d/%d: %s: waiting %s...", i, failures, check.String(), cmd.Interval)
 		time.Sleep(cmd.Interval.Duration())
 	}
 
