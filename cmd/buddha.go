@@ -178,7 +178,7 @@ func runJob(job *buddha.Job) error {
 		log.Println(log.LevelPrim, "Command: %s", cmd.Name)
 
 		// execute before health checks
-		// these will only skip command, not terminate the run
+		// these will execute once and depending on --on-before-file skip this job
 		log.Println(log.LevelScnd, "Executing health checks")
 		err := executeChecks(cmd, cmd.Before, 1)
 		if err != nil {
