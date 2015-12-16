@@ -179,7 +179,7 @@ func runJob(job *buddha.Job) error {
 
 		// execute before health checks
 		// these will execute once and depending on --on-before-file skip this job
-		log.Println(log.LevelScnd, "Executing health checks")
+		log.Println(log.LevelScnd, "Executing before checks")
 		err := executeChecks(cmd, cmd.Before, 1)
 		if err != nil {
 			if *OnBeforeFail == "stop" {
@@ -211,7 +211,7 @@ func runJob(job *buddha.Job) error {
 		time.Sleep(cmd.Grace.Duration())
 
 		// execute after health checks
-		log.Println(log.LevelScnd, "Executing health checks")
+		log.Println(log.LevelScnd, "Executing after checks")
 		err = executeChecks(cmd, cmd.After, cmd.Failures)
 		if err != nil {
 			if *OnAfterFail == "continue" {
