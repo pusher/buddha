@@ -276,7 +276,9 @@ func executeCheck(wg *sync.WaitGroup, cmd buddha.Command, check buddha.Check, fa
 		log.Println(log.LevelInfo, "Check %d/%d: %s: %s", i, failures, check.String(), err)
 
 		log.Println(log.LevelInfo, "Check %d/%d: %s: waiting %s...", i, failures, check.String(), cmd.Interval)
-		time.Sleep(cmd.Interval.Duration())
+		if i < failures {
+			time.Sleep(cmd.Interval.Duration())
+		}
 	}
 
 	if err != nil {
