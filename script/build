@@ -1,0 +1,19 @@
+#! /bin/bash -e
+#
+# Usage:
+#   script/build <TARGET>
+
+TARGET=$1
+
+if [[ -z $TARGET ]]; then
+    echo "No target set!"
+    exit 1
+fi
+
+mkdir -p $TARGET
+
+make build
+
+cp -r bin $TARGET
+
+make clean
