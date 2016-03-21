@@ -19,7 +19,7 @@ func TestCheckExecValidate(t *testing.T) {
 
 func TestCheckExecExecute(t *testing.T) {
 	c := CheckExec{
-		Path: "/bin/true",
+		Path: "true", // The `true` command
 	}
 
 	err := c.Execute(1 * time.Second)
