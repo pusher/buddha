@@ -5,29 +5,47 @@ import (
 	"testing"
 )
 
-func TestJobsFilter(t *testing.T) {
+func TestJobsSelect(t *testing.T) {
 	j := Jobs{&Job{Name: "foo"}, &Job{Name: "bar"}}
 
-	j = j.Filter([]string{"bar"})
+	j, missing := j.Select([]string{"bar"})
 
-	if len(j) != 1 {
+	if len(missing) > 0 {
+		t.Fatal("expected no job missing", missing)
+	} else if len(j) != 1 {
 		t.Fatal("expected 1 job, got", len(j))
 	} else if j[0].Name != "bar" {
 		t.Fatal("expected job[0] bar, got", j[0].Name)
 	}
 }
 
-func TestJobsFilterOrder(t *testing.T) {
+func TestJobsSelectOrder(t *testing.T) {
 	j := Jobs{&Job{Name: "foo"}, &Job{Name: "bar"}}
 
-	j = j.Filter([]string{"foo", "bar"})
+	j, missing := j.Select([]string{"foo", "bar"})
 
-	if len(j) != 2 {
+	if len(missing) > 0 {
+		t.Fatal("expected no job missing", missing)
+	} else if len(j) != 2 {
 		t.Fatal("expected 2 job, got", len(j))
 	} else if j[0].Name != "foo" {
 		t.Fatal("expected job[0] foo, got", j[0].Name)
 	} else if j[1].Name != "bar" {
 		t.Fatal("expected job[1] bar, got", j[1].Name)
+	}
+}
+
+func TestJobsSelectMissing(t *testing.T) {
+	j := Jobs{&Job{Name: "foo"}, &Job{Name: "bar"}}
+
+	j, missing := j.Select([]string{"foo", "something-else"})
+
+	if len(missing) != 1 {
+		t.Fatal("exected 1 missing job", j, missing)
+	} else if missing[0] != "something-else" {
+		t.Fatal("expected missing job to be 'something-else")
+	} else if len(j) != 1 {
+		t.Fatal("expected 1 job", j)
 	}
 }
 

@@ -147,7 +147,11 @@ func run(jobs buddha.Jobs) int {
 
 	// if not running all jobs, filter job list
 	if jobsToRun[0] != "all" {
-		jobs = jobs.Filter(jobsToRun)
+		var missing []string
+		jobs, missing = jobs.Select(jobsToRun)
+		if len(missing) > 0 {
+			log.Println(log.LevelInfo, "info: missing jobs %v", missing)
+		}
 	}
 
 	// perform sanity checks against jobs
