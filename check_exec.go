@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"syscall"
 	"time"
 )
 
@@ -26,10 +27,10 @@ func (c CheckExec) Validate() error {
 	return nil
 }
 
-func (c CheckExec) Execute(timeout time.Duration) error {
+func (c CheckExec) Execute(timeout time.Duration) (bool, error) {
 	path, err := exec.LookPath(c.Path)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	fullArgs := []string{c.Path}
@@ -37,28 +38,44 @@ func (c CheckExec) Execute(timeout time.Duration) error {
 
 	p, err := os.StartProcess(path, fullArgs, &os.ProcAttr{})
 	if err != nil {
-		return err
+		return false, err
 	}
 
-	done := make(chan error, 1)
+	// assume the exit codes of the process mean 0 => true, 1 => false, 2 => error
+	done := make(chan bool, 1)
+	fail := make(chan error, 1)
 	go func() {
 		processState, err := p.Wait()
 		if err != nil {
-			done <- err
+			fail <- err
 		} else if processState.Success() {
-			done <- nil
+			done <- true
 		} else {
-			done <- fmt.Errorf("Non-zero exit code")
+			if status, ok := processState.Sys().(syscall.WaitStatus); ok {
+				switch status.ExitStatus() {
+				case 1:
+					done <- false
+				case 2:
+					fail <- fmt.Errorf("failed with exit code: 2")
+				default:
+					fail <- fmt.Errorf("unexpected exit code: %d", status.ExitStatus())
+				}
+			} else {
+				fail <- fmt.Errorf("platform does not support exit codes")
+			}
 		}
 	}()
 
 	select {
-	case err := <-done:
-		return err
+	case result := <-done:
+		return result, nil
+
+	case err := <-fail:
+		return false, err
 
 	case <-time.After(timeout):
 		p.Kill()
-		return fmt.Errorf("timeout exceeded")
+		return false, fmt.Errorf("timeout exceeded")
 	}
 }
 

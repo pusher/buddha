@@ -22,16 +22,31 @@ func TestCheckExecExecute(t *testing.T) {
 		Path: "true", // The `true` command
 	}
 
-	err := c.Execute(1 * time.Second)
+	result, err := c.Execute(1 * time.Second)
 	if err != nil {
 		t.Fatal("unexpected error:", err)
 	}
+	if result != true {
+		t.Fatal("expected result to be true, got false")
+	}
 }
 
-func TestCheckExecExecuteNonZero(t *testing.T) {
-	c := CheckExec{Path: "/bin/false"}
+func TestCheckExecExecuteReturn1(t *testing.T) {
+	c := CheckExec{Path: "false"}
 
-	err := c.Execute(1 * time.Second)
+	result, err := c.Execute(1 * time.Second)
+	if err != nil {
+		t.Fatal("unexpected error:", err)
+	}
+	if result != false {
+		t.Fatal("expected result to be false, got true")
+	}
+}
+
+func TestCheckExecExecuteReturn2(t *testing.T) {
+	c := CheckExec{Path: "sh -c 'exit 2'"}
+
+	_, err := c.Execute(1 * time.Second)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -43,7 +58,7 @@ func TestCheckExecExecuteTimeout(t *testing.T) {
 		Args: []string{"1"},
 	}
 
-	err := c.Execute(250 * time.Millisecond)
+	_, err := c.Execute(250 * time.Millisecond)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}

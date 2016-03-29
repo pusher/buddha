@@ -26,7 +26,7 @@ func TestCheckHTTPExecute(t *testing.T) {
 	defer ts.Close()
 
 	c := CheckHTTP{Path: ts.URL, Expect: []int{204}}
-	err := c.Execute(1 * time.Second)
+	_, err := c.Execute(1 * time.Second)
 	if err != nil {
 		t.Fatal("unexpected error:", err)
 	}

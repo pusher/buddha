@@ -178,19 +178,21 @@ func runJob(job *buddha.Job) error {
 		log.Println(log.LevelPrim, "Command: %s", cmd.Name)
 
 		// execute before health checks
-		// these will execute once and depending on --on-before-file skip this job
+		// these will execute once and depending on --on-before-fail skip this job
 		log.Println(log.LevelScnd, "Executing before checks")
-		err := executeChecks(cmd, cmd.Before, 1)
+		result, err := executeChecks(cmd, cmd.Before, 1)
 		if err != nil {
+			log.Println(log.LevelFail, "fatal: before checks failed, ending run")
+			return err
+		}
+		if !result {
 			if *OnBeforeFail == "stop" {
-				log.Println(log.LevelFail, "fatal: before checks failed, ending run")
-				return err
+				log.Println(log.LevelFail, "fatal: before checks returned false, ending run")
+				return nil
 			} else if *OnBeforeFail == "continue" {
-				log.Println(log.LevelFail, "warning: before checks failed, continuing anyway")
-				log.Println(log.LevelFail, "warning: %s", err)
+				log.Println(log.LevelFail, "warning: before checks returned false, continuing anyway")
 			} else {
-				log.Println(log.LevelFail, "error: before checks failed, skipping job")
-				log.Println(log.LevelFail, "error: %s", err)
+				log.Println(log.LevelInfo, "Before checks returned false, skipping job")
 				continue
 			}
 		}
@@ -200,9 +202,7 @@ func runJob(job *buddha.Job) error {
 		cmd.Stdout = execStdout
 		err = cmd.Execute()
 		if err != nil {
-			log.Println(log.LevelFail, "fatal: command exited with non-zero status")
 			log.Println(log.LevelFail, "fatal: %s", err)
-
 			return err
 		}
 
@@ -212,16 +212,18 @@ func runJob(job *buddha.Job) error {
 
 		// execute after health checks
 		log.Println(log.LevelScnd, "Executing after checks")
-		err = executeChecks(cmd, cmd.After, cmd.Failures)
+		result, err = executeChecks(cmd, cmd.After, cmd.Failures)
 		if err != nil {
+			log.Println(log.LevelFail, "fatal: after checks failed, ending run. err: %s", err)
+			return err
+		}
+		if !result {
 			if *OnAfterFail == "continue" {
-				log.Println(log.LevelFail, "warning: after checks failed, continuing anyway")
-				log.Println(log.LevelFail, "warning: %s", err)
+				log.Println(log.LevelFail, "warning: after checks returned false, continuing anyway")
 				continue
 			}
 
-			log.Println(log.LevelFail, "fatal: after checks failed, ending run")
-			log.Println(log.LevelFail, "fatal: %s", err)
+			log.Println(log.LevelFail, "fatal: after checks returned false, ending run")
 			return err
 		}
 	}
@@ -235,53 +237,59 @@ func execStdout(line string) {
 }
 
 // execute independent checks in worker goroutines
-func executeChecks(cmd buddha.Command, checks buddha.Checks, failures int) error {
+func executeChecks(cmd buddha.Command, checks buddha.Checks, failures int) (bool, error) {
 	if len(checks) == 0 {
-		return nil
+		return true, nil
 	}
 
 	wg := new(sync.WaitGroup)
-	fail := make(chan error, len(checks))
+	done := make(chan bool, len(checks))
+	fail := make(chan error, 1)
 
 	for _, check := range checks {
 		wg.Add(1)
 
-		go executeCheck(wg, cmd, check, fail, failures)
+		go executeCheck(wg, cmd, check, done, fail, failures)
 	}
 	wg.Wait()
+	close(done)
 
-	// use select to pop from fail channel non-blocking
 	select {
 	case err := <-fail:
-		return err
+		return false, err
 	default:
-		// no-op
+		// Only return true if all checks returned true
+		aggregatedResult := true
+		for result := range done {
+			aggregatedResult = aggregatedResult && result
+		}
+		return aggregatedResult, nil
 	}
-
-	return nil
 }
 
 // execute a check synchronously as defined by check settings as part of a worker waitgroup
-func executeCheck(wg *sync.WaitGroup, cmd buddha.Command, check buddha.Check, fail chan error, failures int) {
+func executeCheck(wg *sync.WaitGroup, cmd buddha.Command, check buddha.Check, done chan bool, fail chan error, failures int) {
 	defer wg.Done()
 
-	var err error
 	for i := 1; i <= failures; i++ {
 		log.Println(log.LevelInfo, "Check %d/%d: %s: checking...", i, failures, check.String())
-		err = check.Execute(cmd.Timeout.Duration())
-		if err == nil {
-			log.Println(log.LevelInfo, "Check %d/%d: %s success!", i, failures, check.String())
-			break
+		result, err := check.Execute(cmd.Timeout.Duration())
+		if err != nil {
+			fail <- err
+			return
 		}
-		log.Println(log.LevelInfo, "Check %d/%d: %s: %s", i, failures, check.String(), err)
+		if result {
+			log.Println(log.LevelInfo, "Check %d/%d: %s success!", i, failures, check.String())
+			done <- true
+			return
+		}
+		log.Println(log.LevelInfo, "Check %d/%d: %s: returned false", i, failures, check.String())
 
-		log.Println(log.LevelInfo, "Check %d/%d: %s: waiting %s...", i, failures, check.String(), cmd.Interval)
 		if i < failures {
+			log.Println(log.LevelInfo, "Check %d/%d: %s: waiting %s...", i, failures, check.String(), cmd.Interval)
 			time.Sleep(cmd.Interval.Duration())
 		}
 	}
-
-	if err != nil {
-		fail <- err
-	}
+	log.Println(log.LevelInfo, "All attempts returned false")
+	done <- false
 }
