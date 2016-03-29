@@ -27,10 +27,10 @@ func (c CheckExec) Validate() error {
 	return nil
 }
 
-func (c CheckExec) Execute(timeout time.Duration) (bool, error) {
+func (c CheckExec) Execute(timeout time.Duration) error {
 	path, err := exec.LookPath(c.Path)
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	fullArgs := []string{c.Path}
@@ -38,24 +38,25 @@ func (c CheckExec) Execute(timeout time.Duration) (bool, error) {
 
 	p, err := os.StartProcess(path, fullArgs, &os.ProcAttr{})
 	if err != nil {
-		return false, err
+		return err
 	}
 
 	// assume the exit codes of the process mean 0 => true, 1 => false, 2 => error
-	done := make(chan bool, 1)
 	fail := make(chan error, 1)
 	go func() {
 		processState, err := p.Wait()
 		if err != nil {
 			fail <- err
 		} else if processState.Success() {
-			done <- true
+			fail <- nil
 		} else {
 			if status, ok := processState.Sys().(syscall.WaitStatus); ok {
 				switch status.ExitStatus() {
 				case 1:
-					done <- false
+					// The command failed in an expected way
+					fail <- CheckFailed("returned exit code 1")
 				case 2:
+					// The command failed with an unexpected error
 					fail <- fmt.Errorf("failed with exit code: 2")
 				default:
 					fail <- fmt.Errorf("unexpected exit code: %d", status.ExitStatus())
@@ -67,15 +68,12 @@ func (c CheckExec) Execute(timeout time.Duration) (bool, error) {
 	}()
 
 	select {
-	case result := <-done:
-		return result, nil
-
 	case err := <-fail:
-		return false, err
+		return err
 
 	case <-time.After(timeout):
 		p.Kill()
-		return false, fmt.Errorf("timeout exceeded")
+		return fmt.Errorf("timeout exceeded")
 	}
 }
 

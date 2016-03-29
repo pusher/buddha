@@ -28,7 +28,7 @@ func TestCheckTCPExecute(t *testing.T) {
 	defer ts.Close()
 
 	c := CheckTCP{Addr: ts.Addr.String()}
-	_, err := c.Execute(1 * time.Second)
+	err := c.Execute(1 * time.Second)
 	if err != nil {
 		t.Fatal("unexpected error:", err)
 	}

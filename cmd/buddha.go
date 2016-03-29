@@ -162,8 +162,7 @@ func run(jobs buddha.Jobs) int {
 	for i := 0; i < len(jobs); i++ {
 		err := runJob(jobs[i])
 		if err != nil {
-			log.Println(log.LevelFail, "fatal: job %s failed", jobs[i].Name)
-			log.Println(log.LevelFail, "fatal: %s", err)
+			log.Println(log.LevelFail, "fatal: job %s failed with unexpected error: %s", jobs[i].Name, err)
 			return 1
 		}
 	}
@@ -273,21 +272,24 @@ func executeCheck(wg *sync.WaitGroup, cmd buddha.Command, check buddha.Check, do
 
 	for i := 1; i <= failures; i++ {
 		log.Println(log.LevelInfo, "Check %d/%d: %s: checking...", i, failures, check.String())
-		result, err := check.Execute(cmd.Timeout.Duration())
+		err := check.Execute(cmd.Timeout.Duration())
 		if err != nil {
-			fail <- err
-			return
-		}
-		if result {
+			switch e := err.(type) {
+			case buddha.CheckFailed:
+				log.Println(log.LevelInfo, "Check %d/%d: %s: failed with: %s", i, failures, check.String(), e)
+				if i < failures {
+					log.Println(log.LevelInfo, "Check %d/%d: %s: waiting %s...", i, failures, check.String(), cmd.Interval)
+					time.Sleep(cmd.Interval.Duration())
+				}
+			default:
+				// unexpected failure, do not retry
+				fail <- err
+				return
+			}
+		} else {
 			log.Println(log.LevelInfo, "Check %d/%d: %s success!", i, failures, check.String())
 			done <- true
 			return
-		}
-		log.Println(log.LevelInfo, "Check %d/%d: %s: returned false", i, failures, check.String())
-
-		if i < failures {
-			log.Println(log.LevelInfo, "Check %d/%d: %s: waiting %s...", i, failures, check.String(), cmd.Interval)
-			time.Sleep(cmd.Interval.Duration())
 		}
 	}
 	log.Println(log.LevelInfo, "All attempts returned false")

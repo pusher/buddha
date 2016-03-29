@@ -14,9 +14,15 @@ type Check interface {
 	Validate() error
 
 	// execute health check with timeout
-	// the bool result is whether the check passed or not
-	// error will be set if there are any unexpected errors
-	Execute(time.Duration) (bool, error)
+	// the error will be a CheckFailed if an expected possible failure case occurred
+	// it will be some other error type for unexpected failures
+	Execute(time.Duration) error
+}
+
+type CheckFailed string
+
+func (e CheckFailed) Error() string {
+	return string(e)
 }
 
 type Checks []Check

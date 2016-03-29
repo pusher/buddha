@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-
-	"github.com/pusher/buddha/log"
 )
 
 // execute OPTIONS http request to health check
@@ -32,7 +30,7 @@ func (c CheckHTTP) Validate() error {
 	return nil
 }
 
-func (c CheckHTTP) Execute(timeout time.Duration) (bool, error) {
+func (c CheckHTTP) Execute(timeout time.Duration) error {
 	if c.Method == "" {
 		c.Method = "OPTIONS"
 	}
@@ -43,22 +41,20 @@ func (c CheckHTTP) Execute(timeout time.Duration) (bool, error) {
 
 	req, err := http.NewRequest(c.Method, c.Path, nil)
 	if err != nil {
-		return false, fmt.Errorf("building http request failed %s", err)
+		return fmt.Errorf("building http request failed %s", err)
 	}
 
 	res, err := client.Do(req)
 	if err != nil {
-		log.Println(log.LevelInfo, "HTTP request failed: %s", err)
-		return false, nil
+		return CheckFailed(fmt.Sprintf("HTTP request failed: %s", err))
 	}
 	defer res.Body.Close()
 
 	if !c.checkStatusCode(res.StatusCode) {
-		log.Println(log.LevelInfo, "Unacceptable status code %d", res.StatusCode)
-		return false, nil
+		return CheckFailed(fmt.Sprintf("Unacceptable status code %d", res.StatusCode))
 	}
 
-	return true, nil
+	return nil
 }
 
 func (c CheckHTTP) String() string {

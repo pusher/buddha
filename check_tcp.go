@@ -25,15 +25,15 @@ func (c CheckTCP) Validate() error {
 	return nil
 }
 
-func (c CheckTCP) Execute(timeout time.Duration) (bool, error) {
+func (c CheckTCP) Execute(timeout time.Duration) error {
 	conn, err := net.DialTimeout("tcp", c.Addr, timeout)
 	if err != nil {
 		log.Println(log.LevelInfo, "TCP connection failed: %s", err)
-		return false, nil
+		return CheckFailed(fmt.Sprintf("TCP connection failed: %s", err))
 	}
 	defer conn.Close()
 
-	return true, nil
+	return nil
 }
 
 func (c CheckTCP) String() string {
