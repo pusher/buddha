@@ -115,3 +115,9 @@ examples:
   to invoke jobs from stdin:
     $ cat demo.json | buddha --stdin all
 ```
+
+Maintainers
+-----------
+
+  - [James Cunningham](https://github.com/jamescun)
+
