@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net"
 	"time"
+
+	"github.com/pusher/buddha/log"
 )
 
 // establish tcp session to health check
@@ -26,7 +28,8 @@ func (c CheckTCP) Validate() error {
 func (c CheckTCP) Execute(timeout time.Duration) error {
 	conn, err := net.DialTimeout("tcp", c.Addr, timeout)
 	if err != nil {
-		return err
+		log.Println(log.LevelInfo, "TCP connection failed: %s", err)
+		return CheckFailed(fmt.Sprintf("TCP connection failed: %s", err))
 	}
 	defer conn.Close()
 

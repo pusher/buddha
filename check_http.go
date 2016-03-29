@@ -41,17 +41,17 @@ func (c CheckHTTP) Execute(timeout time.Duration) error {
 
 	req, err := http.NewRequest(c.Method, c.Path, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("building http request failed %s", err)
 	}
 
 	res, err := client.Do(req)
 	if err != nil {
-		return err
+		return CheckFailed(fmt.Sprintf("HTTP request failed: %s", err))
 	}
 	defer res.Body.Close()
 
 	if !c.checkStatusCode(res.StatusCode) {
-		return fmt.Errorf("unacceptable status code %d", res.StatusCode)
+		return CheckFailed(fmt.Sprintf("Unacceptable status code %d", res.StatusCode))
 	}
 
 	return nil

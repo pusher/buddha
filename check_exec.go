@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"syscall"
 	"time"
 )
 
@@ -40,20 +41,34 @@ func (c CheckExec) Execute(timeout time.Duration) error {
 		return err
 	}
 
-	done := make(chan error, 1)
+	// assume the exit codes of the process mean 0 => true, 1 => false, 2 => error
+	fail := make(chan error, 1)
 	go func() {
 		processState, err := p.Wait()
 		if err != nil {
-			done <- err
+			fail <- err
 		} else if processState.Success() {
-			done <- nil
+			fail <- nil
 		} else {
-			done <- fmt.Errorf("Non-zero exit code")
+			if status, ok := processState.Sys().(syscall.WaitStatus); ok {
+				switch status.ExitStatus() {
+				case 1:
+					// The command failed in an expected way
+					fail <- CheckFailed("returned exit code 1")
+				case 2:
+					// The command failed with an unexpected error
+					fail <- fmt.Errorf("failed with exit code: 2")
+				default:
+					fail <- fmt.Errorf("unexpected exit code: %d", status.ExitStatus())
+				}
+			} else {
+				fail <- fmt.Errorf("platform does not support exit codes")
+			}
 		}
 	}()
 
 	select {
-	case err := <-done:
+	case err := <-fail:
 		return err
 
 	case <-time.After(timeout):

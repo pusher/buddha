@@ -28,12 +28,27 @@ func TestCheckExecExecute(t *testing.T) {
 	}
 }
 
-func TestCheckExecExecuteNonZero(t *testing.T) {
-	c := CheckExec{Path: "/bin/false"}
+func TestCheckExecExecuteReturn1(t *testing.T) {
+	c := CheckExec{Path: "false"}
 
 	err := c.Execute(1 * time.Second)
 	if err == nil {
 		t.Fatal("expected error, got nil")
+	}
+	if _, ok := err.(CheckFailed); !ok {
+		t.Fatal("expected err to be CheckFailed")
+	}
+}
+
+func TestCheckExecExecuteReturn2(t *testing.T) {
+	c := CheckExec{Path: "sh -c 'exit 2'"}
+
+	err := c.Execute(1 * time.Second)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if _, ok := err.(CheckFailed); ok {
+		t.Fatal("expected err to not be CheckFailed")
 	}
 }
 
@@ -46,5 +61,8 @@ func TestCheckExecExecuteTimeout(t *testing.T) {
 	err := c.Execute(250 * time.Millisecond)
 	if err == nil {
 		t.Fatal("expected error, got nil")
+	}
+	if _, ok := err.(CheckFailed); ok {
+		t.Fatal("expected err to not be CheckFailed")
 	}
 }
