@@ -35,8 +35,8 @@ func TestCheckExecExecuteReturn1(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	if _, ok := err.(CheckFailed); !ok {
-		t.Fatal("expected err to be CheckFailed")
+	if _, ok := err.(CheckFalse); !ok {
+		t.Fatal("expected err to be CheckFalse")
 	}
 }
 
@@ -47,8 +47,8 @@ func TestCheckExecExecuteReturn2(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	if _, ok := err.(CheckFailed); ok {
-		t.Fatal("expected err to not be CheckFailed")
+	if _, ok := err.(CheckFalse); ok {
+		t.Fatal("expected err to not be CheckFalse")
 	}
 }
 
@@ -62,7 +62,7 @@ func TestCheckExecExecuteTimeout(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
-	if _, ok := err.(CheckFailed); ok {
-		t.Fatal("expected err to not be CheckFailed")
+	if _, ok := err.(CheckFalse); ok {
+		t.Fatal("expected err to not be CheckFalse")
 	}
 }

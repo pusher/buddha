@@ -14,14 +14,14 @@ type Check interface {
 	Validate() error
 
 	// execute health check with timeout
-	// the error will be a CheckFailed if an expected possible failure case occurred
+	// the error will be a CheckFalse if an expected possible failure case occurred
 	// it will be some other error type for unexpected failures
 	Execute(time.Duration) error
 }
 
-type CheckFailed string
+type CheckFalse string
 
-func (e CheckFailed) Error() string {
+func (e CheckFalse) Error() string {
 	return string(e)
 }
 

@@ -16,8 +16,9 @@ type Command struct {
 	// arguments to pass to executable
 	Args []string `json:"args,omitempty"`
 
-	Before Checks `json:"before"`
-	After  Checks `json:"after"`
+	Necessity Checks `json:"necessity"`
+	Before    Checks `json:"before"`
+	After     Checks `json:"after"`
 
 	// timeout between executing command and beginning health checking
 	Grace Duration `json:"grace"`
