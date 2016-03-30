@@ -46,12 +46,12 @@ func (c CheckHTTP) Execute(timeout time.Duration) error {
 
 	res, err := client.Do(req)
 	if err != nil {
-		return CheckFailed(fmt.Sprintf("HTTP request failed: %s", err))
+		return CheckFalse(fmt.Sprintf("HTTP request failed: %s", err))
 	}
 	defer res.Body.Close()
 
 	if !c.checkStatusCode(res.StatusCode) {
-		return CheckFailed(fmt.Sprintf("Unacceptable status code %d", res.StatusCode))
+		return CheckFalse(fmt.Sprintf("Unacceptable status code %d", res.StatusCode))
 	}
 
 	return nil

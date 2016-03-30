@@ -19,7 +19,11 @@ Requirements:
 Configuration
 -------------
 
-A buddha configuration file consists of an array of jobs. Each job consists of a set of commands and health checks. Health checks performed before the command act as a precondition, failures here will skip to the next command. Health checks performed after the command act as validation, failures here will terminate the buddha run.
+A buddha configuration file consists of an array of jobs. Each job consists of a set of commands and checks. There are three kinds of checks run in the following order:
+
+  - "necessity checks": Check if the job is worth running; for example the most recent version may already running. The default is to skip the job if it is deemed unnecessary by *all* necessity checks
+  - "before health checks": Check the state of the system is correct before running. These will retry if the check returns false. The default is to skip the job if all attempts return false for *any* health check
+  - "after health checks": Checks performed after the command and act as validation. These will retry if the check returns false. The default is to terminate the buddha run if all attempts return false for *any* health check
 
 Every health check is executed within a timed constraint, as noted below:
 
@@ -40,6 +44,12 @@ Below is an example of starting a redis server, ensuring is comes up with a TCP 
       {
         "path": "service",          // path to command (if not a path, $PATH environment will be searched)
         "args": ["redis", "start"], // arguments to pass to command
+
+        // necessity check to see if we need to run the command
+        // "exec" checks exit codes are assumed to have the meanings: 0 => true, 1 => false, 2 => error
+        "necessity": [
+          {"type": "exec", "name": "check_latest_version", "path": "is_latest_version" }
+        ],
 
         // health checks to execute after command
         // failures will terminate the buddha run
@@ -99,8 +109,9 @@ flags:
   --config=<file>               manually specify job configuration file
   --stdin                       accept job configuration from STDIN
   --lock-path=/tmp/buddha.lock  path to lock file
+  --on-unnecessary=skip         job behaviour if necessity checks deem it unnecessary (continue|skip)
   --on-before-fail=skip         behaviour on before check failure (continue|skip|stop)
-  --on-after-fail=stop           behaviour on after check failure (continue|stop)
+  --on-after-fail=stop          behaviour on after check failure (continue|stop)
   --version                     display version information
 
 examples:

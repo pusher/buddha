@@ -53,13 +53,13 @@ func (c CheckExec) Execute(timeout time.Duration) error {
 			if status, ok := processState.Sys().(syscall.WaitStatus); ok {
 				switch status.ExitStatus() {
 				case 1:
-					// The command failed in an expected way
-					fail <- CheckFailed("returned exit code 1")
+					// The check failed in an expected way
+					fail <- CheckFalse(fmt.Sprintf("command `%s` returned exit code 1", path))
 				case 2:
-					// The command failed with an unexpected error
-					fail <- fmt.Errorf("failed with exit code: 2")
+					// The command had an unexpected error
+					fail <- fmt.Errorf("command `%s` failed with exit code: 2", path)
 				default:
-					fail <- fmt.Errorf("unexpected exit code: %d", status.ExitStatus())
+					fail <- fmt.Errorf("command `%s` returned unexpected exit code: %d", path, status.ExitStatus())
 				}
 			} else {
 				fail <- fmt.Errorf("platform does not support exit codes")
