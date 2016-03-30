@@ -15,6 +15,13 @@ import (
 	"github.com/pusher/buddha/log"
 )
 
+// possible behaviours if checks return false
+const (
+	ContinueBehaviour = "continue"
+	SkipBehaviour     = "skip"
+	StopBehaviour     = "stop"
+)
+
 var (
 	BuildVersion  string = "development"
 	BuildRevision string = "development"
@@ -68,15 +75,21 @@ func init() {
 	flag.Usage = Usage
 	flag.Parse()
 
-	if *OnBeforeFail != "continue" &&
-		*OnBeforeFail != "skip" &&
-		*OnBeforeFail != "stop" {
+	if *OnUnnecessary != ContinueBehaviour &&
+		*OnUnnecessary != SkipBehaviour {
+		fmt.Println(*OnUnnecessary, "is not a valid value for --on-unnecessary")
+		os.Exit(2)
+	}
+
+	if *OnBeforeFail != ContinueBehaviour &&
+		*OnBeforeFail != SkipBehaviour &&
+		*OnBeforeFail != StopBehaviour {
 		fmt.Println(*OnBeforeFail, "is not a valid value for --on-before-fail")
 		os.Exit(2)
 	}
 
-	if *OnAfterFail != "continue" &&
-		*OnAfterFail != "stop" {
+	if *OnAfterFail != ContinueBehaviour &&
+		*OnAfterFail != StopBehaviour {
 		fmt.Println(*OnAfterFail, " is not a valid value for --on-after-fail")
 		os.Exit(2)
 	}
@@ -185,9 +198,10 @@ func runJob(job *buddha.Job) error {
 			return err
 		}
 		if allFalse(isNecessaryResults) {
-			if *OnUnnecessary == "continue" {
+			switch *OnUnnecessary {
+			case ContinueBehaviour:
 				log.Println(log.LevelFail, "warning: job unnecessary, continuing anyway")
-			} else {
+			default:
 				log.Println(log.LevelInfo, "Job deemed unnecessary, skipping")
 				continue
 			}
@@ -202,12 +216,13 @@ func runJob(job *buddha.Job) error {
 			return err
 		}
 		if anyFalse(checksResults) {
-			if *OnBeforeFail == "stop" {
+			switch *OnBeforeFail {
+			case StopBehaviour:
 				log.Println(log.LevelFail, "fatal: before returned false, ending run")
 				return nil
-			} else if *OnBeforeFail == "continue" {
+			case ContinueBehaviour:
 				log.Println(log.LevelFail, "warning: before returned false, continuing anyway")
-			} else {
+			default:
 				log.Println(log.LevelFail, "warning: before returned false, skipping job")
 				continue
 			}
@@ -234,7 +249,7 @@ func runJob(job *buddha.Job) error {
 			return err
 		}
 		if anyFalse(checksResults) {
-			if *OnAfterFail == "continue" {
+			if *OnAfterFail == ContinueBehaviour {
 				log.Println(log.LevelFail, "warning: after checks failed, continuing anyway")
 				continue
 			}
