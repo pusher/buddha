@@ -351,7 +351,7 @@ func executeHealthCheck(wg *sync.WaitGroup, cmd buddha.Command, check buddha.Che
 }
 
 func allFalse(arr []bool) bool {
-	if arr == nil {
+	if len(arr) == 0 {
 		return false
 	}
 	aggregate := true
