@@ -308,20 +308,31 @@ type ExecuteCheck func(*sync.WaitGroup, buddha.Command, buddha.Check, chan bool,
 func executeNecessityCheck(wg *sync.WaitGroup, cmd buddha.Command, check buddha.Check, done chan bool, fail chan error) {
 	defer wg.Done()
 
-	log.Println(log.LevelInfo, "Check %s: checking...", check.String())
-	err := check.Execute(cmd.Timeout.Duration())
-	if err != nil {
-		switch e := err.(type) {
-		case buddha.CheckFalse:
-			log.Println(log.LevelInfo, "Check %s: deemed job unnecessary: %s", check.String(), e)
-			done <- false
-		default:
-			// unexpected failure
-			fail <- err
+	for i := 1; true; i++ {
+		log.Println(log.LevelInfo, "Check %s: checking...", check.String())
+		err := check.Execute(cmd.Timeout.Duration())
+		if err != nil {
+			switch e := err.(type) {
+			case buddha.CheckFalse:
+				log.Println(log.LevelInfo, "Check %s: deemed job unnecessary: %s", check.String(), e)
+				done <- false
+				return
+			default:
+				// unexpected failure
+				log.Println(log.LevelInfo, "Check %d/%d: %s: returned error: %s", i, cmd.Failures, check.String(), e)
+				if i < cmd.Failures {
+					log.Println(log.LevelInfo, "Check %d/%d: %s: waiting %s...", i, cmd.Failures, check.String(), cmd.Interval)
+					time.Sleep(cmd.Interval.Duration())
+				} else {
+					fail <- err
+					return
+				}
+			}
+		} else {
+			log.Println(log.LevelInfo, "Check %s: deemed job necessary", check.String())
+			done <- true
+			return
 		}
-	} else {
-		log.Println(log.LevelInfo, "Check %s: deemed job necessary", check.String())
-		done <- true
 	}
 }
 
@@ -329,7 +340,7 @@ func executeNecessityCheck(wg *sync.WaitGroup, cmd buddha.Command, check buddha.
 func executeHealthCheck(wg *sync.WaitGroup, cmd buddha.Command, check buddha.Check, done chan bool, fail chan error) {
 	defer wg.Done()
 
-	for i := 1; i <= cmd.Failures; i++ {
+	for i := 1; true; i++ {
 		log.Println(log.LevelInfo, "Check %d/%d: %s: checking...", i, cmd.Failures, check.String())
 		err := check.Execute(cmd.Timeout.Duration())
 		if err != nil {
@@ -339,11 +350,20 @@ func executeHealthCheck(wg *sync.WaitGroup, cmd buddha.Command, check buddha.Che
 				if i < cmd.Failures {
 					log.Println(log.LevelInfo, "Check %d/%d: %s: waiting %s...", i, cmd.Failures, check.String(), cmd.Interval)
 					time.Sleep(cmd.Interval.Duration())
+				} else {
+					done <- false
+					return
 				}
 			default:
-				// unexpected failure, do not retry
-				fail <- err
-				return
+				// unexpected failure
+				log.Println(log.LevelInfo, "Check %d/%d: %s: returned error: %s", i, cmd.Failures, check.String(), e)
+				if i < cmd.Failures {
+					log.Println(log.LevelInfo, "Check %d/%d: %s: waiting %s...", i, cmd.Failures, check.String(), cmd.Interval)
+					time.Sleep(cmd.Interval.Duration())
+				} else {
+					fail <- err
+					return
+				}
 			}
 		} else {
 			log.Println(log.LevelInfo, "Check %d/%d: %s success!", i, cmd.Failures, check.String())
@@ -351,7 +371,6 @@ func executeHealthCheck(wg *sync.WaitGroup, cmd buddha.Command, check buddha.Che
 			return
 		}
 	}
-	done <- false
 }
 
 func allFalse(arr []bool) bool {
