@@ -318,6 +318,7 @@ func executeNecessityCheck(wg *sync.WaitGroup, cmd buddha.Command, check buddha.
 				done <- false
 				return
 			default:
+				log.Println(log.LevelInfo, "Check %d/%d: %s: returned error: %s", i, cmd.Failures, check.String(), e)
 				if i < cmd.Failures {
 					log.Println(log.LevelInfo, "Check %d/%d: %s: waiting %s...", i, cmd.Failures, check.String(), cmd.Interval)
 					time.Sleep(cmd.Interval.Duration())
