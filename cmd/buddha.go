@@ -339,7 +339,7 @@ func executeNecessityCheck(wg *sync.WaitGroup, cmd buddha.Command, check buddha.
 func executeHealthCheck(wg *sync.WaitGroup, cmd buddha.Command, check buddha.Check, done chan bool, fail chan error) {
 	defer wg.Done()
 
-	for i := 1; i <= cmd.Failures; i++ {
+	for i := 1; true; i++ {
 		log.Println(log.LevelInfo, "Check %d/%d: %s: checking...", i, cmd.Failures, check.String())
 		err := check.Execute(cmd.Timeout.Duration())
 		if err != nil {
@@ -349,11 +349,20 @@ func executeHealthCheck(wg *sync.WaitGroup, cmd buddha.Command, check buddha.Che
 				if i < cmd.Failures {
 					log.Println(log.LevelInfo, "Check %d/%d: %s: waiting %s...", i, cmd.Failures, check.String(), cmd.Interval)
 					time.Sleep(cmd.Interval.Duration())
+				} else {
+					done <- false
+					return
 				}
 			default:
-				// unexpected failure, do not retry
-				fail <- err
-				return
+				log.Println(log.LevelInfo, "Check %d/%d: %s: returned error: %s", i, cmd.Failures, check.String(), e)
+				if i < cmd.Failures {
+					log.Println(log.LevelInfo, "Check %d/%d: %s: waiting %s...", i, cmd.Failures, check.String(), cmd.Interval)
+					time.Sleep(cmd.Interval.Duration())
+				} else {
+					// unexpected failure, do not retry
+					fail <- err
+					return
+				}
 			}
 		} else {
 			log.Println(log.LevelInfo, "Check %d/%d: %s success!", i, cmd.Failures, check.String())
@@ -361,7 +370,6 @@ func executeHealthCheck(wg *sync.WaitGroup, cmd buddha.Command, check buddha.Che
 			return
 		}
 	}
-	done <- false
 }
 
 func allFalse(arr []bool) bool {
