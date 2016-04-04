@@ -35,7 +35,7 @@ Below is an example of starting a redis server, ensuring is comes up with a TCP 
 
 **Example:**
 
-```json
+```js
 [
   {
     "name": "my_app", // unique name for job
