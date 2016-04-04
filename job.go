@@ -15,16 +15,26 @@ func (j Jobs) Len() int           { return len(j) }
 func (j Jobs) Swap(i, n int)      { j[i], j[n] = j[n], j[i] }
 func (j Jobs) Less(i, n int) bool { return j[i].Name < j[n].Name }
 
-// return new array of jobs matching name filter
-func (j Jobs) Filter(f []string) Jobs {
-	var n Jobs
-	for i := 0; i < len(j); i++ {
-		if inArray(f, j[i].Name) {
-			n = append(n, j[i])
+// Return:
+// * a new array of jobs matching name filter
+// * a list of names that wheren't found
+func (j Jobs) Select(f []string) (n Jobs, missing []string) {
+
+	for _, name := range f {
+		found := false
+		for _, job := range j {
+			if job.Name == name {
+				n = append(n, job)
+				found = true
+				break
+			}
+		}
+		if !found {
+			missing = append(missing, name)
 		}
 	}
 
-	return n
+	return
 }
 
 type Job struct {
