@@ -318,12 +318,12 @@ func executeNecessityCheck(wg *sync.WaitGroup, cmd buddha.Command, check buddha.
 				done <- false
 				return
 			default:
+				// unexpected failure
 				log.Println(log.LevelInfo, "Check %d/%d: %s: returned error: %s", i, cmd.Failures, check.String(), e)
 				if i < cmd.Failures {
 					log.Println(log.LevelInfo, "Check %d/%d: %s: waiting %s...", i, cmd.Failures, check.String(), cmd.Interval)
 					time.Sleep(cmd.Interval.Duration())
 				} else {
-					// unexpected failure
 					fail <- err
 					return
 				}
@@ -355,12 +355,12 @@ func executeHealthCheck(wg *sync.WaitGroup, cmd buddha.Command, check buddha.Che
 					return
 				}
 			default:
+				// unexpected failure
 				log.Println(log.LevelInfo, "Check %d/%d: %s: returned error: %s", i, cmd.Failures, check.String(), e)
 				if i < cmd.Failures {
 					log.Println(log.LevelInfo, "Check %d/%d: %s: waiting %s...", i, cmd.Failures, check.String(), cmd.Interval)
 					time.Sleep(cmd.Interval.Duration())
 				} else {
-					// unexpected failure, do not retry
 					fail <- err
 					return
 				}
