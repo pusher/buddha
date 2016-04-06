@@ -10,6 +10,7 @@ build:
 
 test:
 	go test -v github.com/pusher/buddha/tcptest
+	go test -v github.com/pusher/buddha/cmd
 	go test -v github.com/pusher/buddha
 
 stage:
