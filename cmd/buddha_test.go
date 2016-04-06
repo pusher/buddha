@@ -12,7 +12,6 @@ import (
 // This module is mainly for testing the logic of how the results of Checks
 // are handled
 
-// TODO not currently tested: multiple commands (particuarly relevent for after checks)
 // TODO would also be nice to mock the actual command
 // TODO would also be nice to mock the timeouts
 
@@ -455,5 +454,95 @@ func TestRunJobAfterChecksNotRunIfCommandFails(t *testing.T) {
 	}
 	if afterMockChecks[0].TimesExecuted != 0 {
 		t.Fatal("expected afterMockChecks[0] to be executed 0 times")
+	}
+}
+
+// MULTIPLE COMMANDS
+
+func TestRunJobMultipleCommands(t *testing.T) {
+	necessityMockChecks1 := mkChecksReturningOnce(nil)
+	necessityChecks1 := necessityMockChecks1.toChecks()
+	beforeMockChecks1 := mkChecksReturningOnce(nil)
+	beforeChecks1 := beforeMockChecks1.toChecks()
+	afterMockChecks1 := mkChecksReturningOnce(nil)
+	afterChecks1 := afterMockChecks1.toChecks()
+	command1 := mkCommand(necessityChecks1, beforeChecks1, afterChecks1, DefaultFailures, true)
+
+	necessityMockChecks2 := mkChecksReturningOnce(nil)
+	necessityChecks2 := necessityMockChecks2.toChecks()
+	beforeMockChecks2 := mkChecksReturningOnce(nil)
+	beforeChecks2 := beforeMockChecks2.toChecks()
+	afterMockChecks2 := mkChecksReturningOnce(nil)
+	afterChecks2 := afterMockChecks2.toChecks()
+	command2 := mkCommand(necessityChecks2, beforeChecks2, afterChecks2, DefaultFailures, true)
+
+	commands := []buddha.Command{command1, command2}
+	job := mkJob(&commands)
+
+	runJob(&job)
+
+	if necessityMockChecks1[0].TimesExecuted != 1 {
+		t.Fatal("expected necessityMockChecks1[0] to be executed 1 time")
+	}
+	if beforeMockChecks1[0].TimesExecuted != 1 {
+		t.Fatal("expected beforeMockChecks1[0] to be executed 1 time")
+	}
+	if afterMockChecks1[0].TimesExecuted != 1 {
+		t.Fatal("expected afterMockChecks1[0] to be executed 1 times")
+	}
+
+	if necessityMockChecks2[0].TimesExecuted != 1 {
+		t.Fatal("expected necessityMockChecks2[0] to be executed 1 time")
+	}
+	if beforeMockChecks2[0].TimesExecuted != 1 {
+		t.Fatal("expected beforeMockChecks2[0] to be executed 1 time")
+	}
+	if afterMockChecks2[0].TimesExecuted != 1 {
+		t.Fatal("expected afterMockChecks2[0] to be executed 1 times")
+	}
+}
+
+func TestRunJobMultipleCommandsFirstErrors(t *testing.T) {
+	necessityMockChecks1 := mkChecksReturningOnce(nil)
+	necessityChecks1 := necessityMockChecks1.toChecks()
+	beforeMockChecks1 := mkChecksReturningOnce(nil)
+	beforeChecks1 := beforeMockChecks1.toChecks()
+	// Error in the after check
+	afterMockChecks1 := mkChecksReturning([]error{errors.New("error"), errors.New("error")})
+	afterChecks1 := afterMockChecks1.toChecks()
+	command1 := mkCommand(necessityChecks1, beforeChecks1, afterChecks1, DefaultFailures, true)
+
+	// Expect this to not be run
+	necessityMockChecks2 := mkChecksReturningOnce(nil)
+	necessityChecks2 := necessityMockChecks2.toChecks()
+	beforeMockChecks2 := mkChecksReturningOnce(nil)
+	beforeChecks2 := beforeMockChecks2.toChecks()
+	afterMockChecks2 := mkChecksReturningOnce(nil)
+	afterChecks2 := afterMockChecks2.toChecks()
+	command2 := mkCommand(necessityChecks2, beforeChecks2, afterChecks2, DefaultFailures, true)
+
+	commands := []buddha.Command{command1, command2}
+	job := mkJob(&commands)
+
+	runJob(&job)
+
+	if necessityMockChecks1[0].TimesExecuted != 1 {
+		t.Fatal("expected necessityMockChecks1[0] to be executed 1 time")
+	}
+	if beforeMockChecks1[0].TimesExecuted != 1 {
+		t.Fatal("expected beforeMockChecks1[0] to be executed 1 time")
+	}
+	if afterMockChecks1[0].TimesExecuted != DefaultFailures {
+		t.Fatalf("expected afterMockChecks1[0] to be executed %d times", DefaultFailures)
+	}
+
+	if necessityMockChecks2[0].TimesExecuted != 0 {
+		t.Fatal("expected necessityMockChecks2[0] to be executed 0 time")
+	}
+	if beforeMockChecks2[0].TimesExecuted != 0 {
+		t.Fatal("expected beforeMockChecks2[0] to be executed 0 time")
+	}
+	if afterMockChecks2[0].TimesExecuted != 0 {
+		t.Fatal("expected afterMockChecks2[0] to be executed 0 times")
 	}
 }
