@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/pusher/buddha"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // This module is mainly for testing the logic of how the results of Checks
@@ -147,25 +149,15 @@ func testNecessityCheck(t *testing.T, returning [][]error, timesExecuted []int, 
 	runJob(job)
 
 	for i, results := range returning {
-		if necessityMockChecks[i].TimesExecuted != len(results) {
-			t.Fatalf("expected necessityMockChecks[%d] to be executed %d times, executed %d", i, len(results), necessityMockChecks[i].TimesExecuted)
-		}
+		assert.Equal(t, len(results), necessityMockChecks[i].TimesExecuted, "mismatch in necessityMockChecks")
 	}
 
 	if checkShouldContinue {
-		if beforeMockChecks[0].TimesExecuted != 1 {
-			t.Fatal("expected beforeMockChecks[0] to be executed 1 time")
-		}
-		if afterMockChecks[0].TimesExecuted != 1 {
-			t.Fatal("expected afterMockChecks[0] to be executed 1 time")
-		}
+		assert.Equal(t, 1, beforeMockChecks[0].TimesExecuted, "before check not executed")
+		assert.Equal(t, 1, afterMockChecks[0].TimesExecuted, "after check not executed")
 	} else {
-		if beforeMockChecks[0].TimesExecuted != 0 {
-			t.Fatal("expected beforeMockChecks[0] to be executed 0 times")
-		}
-		if afterMockChecks[0].TimesExecuted != 0 {
-			t.Fatal("expected afterMockChecks[0] to be executed 0 times")
-		}
+		assert.Equal(t, 0, beforeMockChecks[0].TimesExecuted, "before check executed")
+		assert.Equal(t, 0, afterMockChecks[0].TimesExecuted, "after check executed")
 	}
 }
 
@@ -182,24 +174,16 @@ func testBeforeCheck(t *testing.T, returning [][]error, timesExecuted []int, fai
 
 	runJob(job)
 
-	if necessityMockChecks[0].TimesExecuted != 1 {
-		t.Fatal("expected necessityMockChecks[0] to be executed 1 time")
-	}
+	assert.Equal(t, 1, necessityMockChecks[0].TimesExecuted, "necessity check not executed")
 
 	for i, results := range returning {
-		if beforeMockChecks[i].TimesExecuted != len(results) {
-			t.Fatalf("expected beforeMockChecks[%d] to be executed %d times", i, len(results))
-		}
+		assert.Equal(t, len(results), beforeMockChecks[i].TimesExecuted, "mismatch in beforeMochChecks")
 	}
 
 	if checkShouldContinue {
-		if afterMockChecks[0].TimesExecuted != 1 {
-			t.Fatal("expected afterMockChecks[0] to be executed 1 time")
-		}
+		assert.Equal(t, 1, afterMockChecks[0].TimesExecuted, "after check not executed")
 	} else {
-		if afterMockChecks[0].TimesExecuted != 0 {
-			t.Fatal("expected afterMockChecks[0] to be executed 0 times")
-		}
+		assert.Equal(t, 0, afterMockChecks[0].TimesExecuted, "after check executed")
 	}
 }
 
@@ -216,17 +200,11 @@ func testAfterCheck(t *testing.T, returning [][]error, timesExecuted []int, fail
 
 	runJob(job)
 
-	if necessityMockChecks[0].TimesExecuted != 1 {
-		t.Fatal("expected necessityMockChecks[0] to be executed 1 time")
-	}
-	if beforeMockChecks[0].TimesExecuted != 1 {
-		t.Fatal("expected beforeMockChecks[0] to be executed 1 time")
-	}
+	assert.Equal(t, 1, necessityMockChecks[0].TimesExecuted, "necessity check not executed")
+	assert.Equal(t, 1, beforeMockChecks[0].TimesExecuted, "before check not executed")
 
 	for i, results := range returning {
-		if afterMockChecks[i].TimesExecuted != len(results) {
-			t.Fatalf("expected afterMockChecks[%d] to be executed %d times", i, len(results))
-		}
+		assert.Equal(t, len(results), afterMockChecks[i].TimesExecuted, "mismatch in afterMockChecks")
 	}
 }
 
@@ -447,15 +425,9 @@ func TestRunJobAfterChecksNotRunIfCommandFails(t *testing.T) {
 
 	runJob(job)
 
-	if necessityMockChecks[0].TimesExecuted != 1 {
-		t.Fatal("expected necessityMockChecks[0] to be executed 1 time")
-	}
-	if beforeMockChecks[0].TimesExecuted != 1 {
-		t.Fatal("expected beforeMockChecks[0] to be executed 1 time")
-	}
-	if afterMockChecks[0].TimesExecuted != 0 {
-		t.Fatal("expected afterMockChecks[0] to be executed 0 times")
-	}
+	assert.Equal(t, 1, necessityMockChecks[0].TimesExecuted, "necessity check not executed")
+	assert.Equal(t, 1, beforeMockChecks[0].TimesExecuted, "before check not executed")
+	assert.Equal(t, 0, afterMockChecks[0].TimesExecuted, "after check executed")
 }
 
 // MULTIPLE COMMANDS
@@ -482,25 +454,13 @@ func TestRunJobMultipleCommands(t *testing.T) {
 
 	runJob(job)
 
-	if necessityMockChecks1[0].TimesExecuted != 1 {
-		t.Fatal("expected necessityMockChecks1[0] to be executed 1 time")
-	}
-	if beforeMockChecks1[0].TimesExecuted != 1 {
-		t.Fatal("expected beforeMockChecks1[0] to be executed 1 time")
-	}
-	if afterMockChecks1[0].TimesExecuted != 1 {
-		t.Fatal("expected afterMockChecks1[0] to be executed 1 times")
-	}
+	assert.Equal(t, 1, necessityMockChecks1[0].TimesExecuted, "necessity check 1 not executed")
+	assert.Equal(t, 1, beforeMockChecks1[0].TimesExecuted, "before check 1 not executed")
+	assert.Equal(t, 1, afterMockChecks1[0].TimesExecuted, "after check 1 not executed")
 
-	if necessityMockChecks2[0].TimesExecuted != 1 {
-		t.Fatal("expected necessityMockChecks2[0] to be executed 1 time")
-	}
-	if beforeMockChecks2[0].TimesExecuted != 1 {
-		t.Fatal("expected beforeMockChecks2[0] to be executed 1 time")
-	}
-	if afterMockChecks2[0].TimesExecuted != 1 {
-		t.Fatal("expected afterMockChecks2[0] to be executed 1 times")
-	}
+	assert.Equal(t, 1, necessityMockChecks2[0].TimesExecuted, "necessity check 2 not executed")
+	assert.Equal(t, 1, beforeMockChecks2[0].TimesExecuted, "before check 2 not executed")
+	assert.Equal(t, 1, afterMockChecks2[0].TimesExecuted, "after check 2 not executed")
 }
 
 func TestRunJobMultipleCommandsFirstErrors(t *testing.T) {
@@ -527,23 +487,11 @@ func TestRunJobMultipleCommandsFirstErrors(t *testing.T) {
 
 	runJob(job)
 
-	if necessityMockChecks1[0].TimesExecuted != 1 {
-		t.Fatal("expected necessityMockChecks1[0] to be executed 1 time")
-	}
-	if beforeMockChecks1[0].TimesExecuted != 1 {
-		t.Fatal("expected beforeMockChecks1[0] to be executed 1 time")
-	}
-	if afterMockChecks1[0].TimesExecuted != DefaultFailures {
-		t.Fatalf("expected afterMockChecks1[0] to be executed %d times", DefaultFailures)
-	}
+	assert.Equal(t, 1, necessityMockChecks1[0].TimesExecuted, "necessity check 1 not executed")
+	assert.Equal(t, 1, beforeMockChecks1[0].TimesExecuted, "before check 1 not executed")
+	assert.Equal(t, DefaultFailures, afterMockChecks1[0].TimesExecuted, "after checks 1 not executed")
 
-	if necessityMockChecks2[0].TimesExecuted != 0 {
-		t.Fatal("expected necessityMockChecks2[0] to be executed 0 time")
-	}
-	if beforeMockChecks2[0].TimesExecuted != 0 {
-		t.Fatal("expected beforeMockChecks2[0] to be executed 0 time")
-	}
-	if afterMockChecks2[0].TimesExecuted != 0 {
-		t.Fatal("expected afterMockChecks2[0] to be executed 0 times")
-	}
+	assert.Equal(t, 0, necessityMockChecks2[0].TimesExecuted, "necessity check 2 executed")
+	assert.Equal(t, 0, beforeMockChecks2[0].TimesExecuted, "before check 2 executed")
+	assert.Equal(t, 0, afterMockChecks2[0].TimesExecuted, "after check 2 executed")
 }
