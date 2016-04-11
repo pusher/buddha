@@ -48,23 +48,24 @@ func (mockCheck *MockCheck) Execute(timeout time.Duration) error {
 	return result
 }
 
-type MockChecks []MockCheck
+type MockChecks []*MockCheck
 
 // Need to explicity cast a slice of concrete MockChecks to the Check interface
-func (mockChecks *MockChecks) toChecks() *buddha.Checks {
-	checks := make(buddha.Checks, len(*mockChecks))
-	for i := range *mockChecks {
-		checks[i] = buddha.Check(&((*mockChecks)[i]))
+func (mockChecks MockChecks) toChecks() buddha.Checks {
+	checks := make(buddha.Checks, len(mockChecks))
+	for i, c := range mockChecks {
+		checks[i] = c
 	}
-	return &checks
+
+	return checks
 }
 
 // JOB BUILDERS
 // Functions for making the the constituation structs of a buddha.job that
 // reference the mock Checks
 
-func mkCheckReturning(results []error) MockCheck {
-	return MockCheck{
+func mkCheckReturning(results []error) *MockCheck {
+	return &MockCheck{
 		Str:           "mockCheck",
 		Results:       results,
 		TimesExecuted: 0,
@@ -73,7 +74,7 @@ func mkCheckReturning(results []error) MockCheck {
 
 // Make checks by providing a list of result values, each time they are run, the next result will be returned
 func mkChecksReturning(allResults ...[]error) MockChecks {
-	checks := make([]MockCheck, len(allResults))
+	checks := make(MockChecks, len(allResults))
 	for i, results := range allResults {
 		checks[i] = mkCheckReturning(results)
 	}
@@ -82,7 +83,7 @@ func mkChecksReturning(allResults ...[]error) MockChecks {
 
 // Specialisation of mkChecksReturning that makes checks that should only be run once
 func mkChecksReturningOnce(allResults ...error) MockChecks {
-	checks := make([]MockCheck, len(allResults))
+	checks := make(MockChecks, len(allResults))
 	for i, result := range allResults {
 		checks[i] = mkCheckReturning([]error{result})
 	}
@@ -90,9 +91,9 @@ func mkChecksReturningOnce(allResults ...error) MockChecks {
 }
 
 func mkCommand(
-	necessityChecks *buddha.Checks,
-	beforeChecks *buddha.Checks,
-	afterChecks *buddha.Checks,
+	necessityChecks buddha.Checks,
+	beforeChecks buddha.Checks,
+	afterChecks buddha.Checks,
 	failures int,
 	shouldSucceed bool,
 ) buddha.Command {
@@ -107,9 +108,9 @@ func mkCommand(
 		Name:      name,
 		Path:      path,
 		Args:      nil,
-		Necessity: *necessityChecks,
-		Before:    *beforeChecks,
-		After:     *afterChecks,
+		Necessity: necessityChecks,
+		Before:    beforeChecks,
+		After:     afterChecks,
 		Grace:     DefaultDuration,
 		Timeout:   DefaultDuration,
 		Interval:  DefaultDuration,
@@ -118,11 +119,11 @@ func mkCommand(
 	}
 }
 
-func mkJob(commands *[]buddha.Command) buddha.Job {
-	return buddha.Job{
+func mkJob(commands []buddha.Command) *buddha.Job {
+	return &buddha.Job{
 		Name:     "mock job",
 		Root:     false, // Don't care
-		Commands: *commands,
+		Commands: commands,
 	}
 }
 
@@ -141,13 +142,13 @@ func testNecessityCheck(t *testing.T, returning [][]error, timesExecuted []int, 
 	afterChecks := afterMockChecks.toChecks()
 	command := mkCommand(necessityChecks, beforeChecks, afterChecks, failures, true)
 	commands := []buddha.Command{command}
-	job := mkJob(&commands)
+	job := mkJob(commands)
 
-	runJob(&job)
+	runJob(job)
 
 	for i, results := range returning {
 		if necessityMockChecks[i].TimesExecuted != len(results) {
-			t.Fatalf("expected necessityMockChecks[%d] to be executed %d times", i, len(results))
+			t.Fatalf("expected necessityMockChecks[%d] to be executed %d times, executed %d", i, len(results), necessityMockChecks[i].TimesExecuted)
 		}
 	}
 
@@ -177,9 +178,9 @@ func testBeforeCheck(t *testing.T, returning [][]error, timesExecuted []int, fai
 	afterChecks := afterMockChecks.toChecks()
 	command := mkCommand(necessityChecks, beforeChecks, afterChecks, failures, true)
 	commands := []buddha.Command{command}
-	job := mkJob(&commands)
+	job := mkJob(commands)
 
-	runJob(&job)
+	runJob(job)
 
 	if necessityMockChecks[0].TimesExecuted != 1 {
 		t.Fatal("expected necessityMockChecks[0] to be executed 1 time")
@@ -211,9 +212,9 @@ func testAfterCheck(t *testing.T, returning [][]error, timesExecuted []int, fail
 	afterChecks := afterMockChecks.toChecks()
 	command := mkCommand(necessityChecks, beforeChecks, afterChecks, failures, true)
 	commands := []buddha.Command{command}
-	job := mkJob(&commands)
+	job := mkJob(commands)
 
-	runJob(&job)
+	runJob(job)
 
 	if necessityMockChecks[0].TimesExecuted != 1 {
 		t.Fatal("expected necessityMockChecks[0] to be executed 1 time")
@@ -442,9 +443,9 @@ func TestRunJobAfterChecksNotRunIfCommandFails(t *testing.T) {
 	// Make a command that fails
 	command := mkCommand(necessityChecks, beforeChecks, afterChecks, DefaultFailures, false)
 	commands := []buddha.Command{command}
-	job := mkJob(&commands)
+	job := mkJob(commands)
 
-	runJob(&job)
+	runJob(job)
 
 	if necessityMockChecks[0].TimesExecuted != 1 {
 		t.Fatal("expected necessityMockChecks[0] to be executed 1 time")
@@ -477,9 +478,9 @@ func TestRunJobMultipleCommands(t *testing.T) {
 	command2 := mkCommand(necessityChecks2, beforeChecks2, afterChecks2, DefaultFailures, true)
 
 	commands := []buddha.Command{command1, command2}
-	job := mkJob(&commands)
+	job := mkJob(commands)
 
-	runJob(&job)
+	runJob(job)
 
 	if necessityMockChecks1[0].TimesExecuted != 1 {
 		t.Fatal("expected necessityMockChecks1[0] to be executed 1 time")
@@ -522,9 +523,9 @@ func TestRunJobMultipleCommandsFirstErrors(t *testing.T) {
 	command2 := mkCommand(necessityChecks2, beforeChecks2, afterChecks2, DefaultFailures, true)
 
 	commands := []buddha.Command{command1, command2}
-	job := mkJob(&commands)
+	job := mkJob(commands)
 
-	runJob(&job)
+	runJob(job)
 
 	if necessityMockChecks1[0].TimesExecuted != 1 {
 		t.Fatal("expected necessityMockChecks1[0] to be executed 1 time")
