@@ -19,7 +19,7 @@ import (
 
 const (
 	DefaultFailures = 2 // Default number of times Checks should be retried
-	DefaultDuration = buddha.Duration(10 ^ 9)
+	DefaultDuration = buddha.Duration(3 * time.Nanosecond)
 )
 
 // MOCK CHECKS
