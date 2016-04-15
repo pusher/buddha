@@ -3,10 +3,12 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"testing"
 	"time"
 
 	"github.com/pusher/buddha"
+	"github.com/pusher/buddha/log"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -209,6 +211,12 @@ func testAfterCheck(t *testing.T, returning [][]error, timesExecuted []int, fail
 }
 
 // THE TESTS
+
+// Turn off logging
+
+func init() {
+	log.SetOutput(ioutil.Discard)
+}
 
 // NECESSITY CHECKS
 
