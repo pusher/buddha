@@ -9,11 +9,11 @@ deps:
 	go get github.com/stretchr/testify/assert
 
 build:
-	go build -o bin/buddha -ldflags "-X main.BuildVersion=$(BUILD_VERSION) -X main.BuildRevision=$(BUILD_REVISION)" cmd/*.go
+	go build -o bin/buddha -ldflags "-X main.BuildVersion=$(BUILD_VERSION) -X main.BuildRevision=$(BUILD_REVISION)" cmd/buddha/*.go
 
 test:
 	go test -v github.com/pusher/buddha/tcptest
-	go test -v github.com/pusher/buddha/cmd
+	go test -v github.com/pusher/buddha/cmd/buddha
 	go test -v github.com/pusher/buddha
 
 stage:
