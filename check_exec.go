@@ -54,12 +54,12 @@ func (c CheckExec) Execute(timeout time.Duration) error {
 				switch status.ExitStatus() {
 				case 1:
 					// The check failed in an expected way
-					fail <- CheckFalse(fmt.Sprintf("command `%s` returned exit code 1", path))
+					fail <- CheckFalse(fmt.Sprintf("command `%s` with args %#v returned exit code 1", path, fullArgs))
 				case 2:
 					// The command had an unexpected error
-					fail <- fmt.Errorf("command `%s` failed with exit code: 2", path)
+					fail <- fmt.Errorf("command `%s` with args %#v failed with exit code: 2", path, fullArgs)
 				default:
-					fail <- fmt.Errorf("command `%s` returned unexpected exit code: %d", path, status.ExitStatus())
+					fail <- fmt.Errorf("command `%s` with args %#v returned unexpected exit code: %d", path, fullArgs, status.ExitStatus())
 				}
 			} else {
 				fail <- fmt.Errorf("platform does not support exit codes")
